@@ -1,0 +1,946 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FBF6F4">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="اینفینیا">
+<meta name="description" content="دفتر نوبت سالن زیبایی اینفینیا">
+<style>
+  :root{color-scheme:light dark;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+  html,body{margin:0}
+  img{max-width:100%}
+  [hidden]{display:none!important}
+</style>
+<title>دفتر نوبت اینفینیا</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lalezar&family=Vazirmatn:wght@300;400;500;600;700&display=swap" media="print" onload="this.media='all'">
+<style>
+  :root{
+    --bg:#FBF6F4;
+    --surface:#FFFFFF;
+    --surface-2:#F5ECE9;
+    --ink:#2B2026;
+    --muted:#7C6B72;
+    --line:#E7D9D6;
+    --berry:#8E2F52;
+    --berry-soft:#F6E4EA;
+    --teal:#2E6B65;
+    --teal-soft:#DFEDEA;
+    --violet:#6A4A8F;
+    --violet-soft:#EEE6F7;
+    --amber:#8A5A1F;
+    --amber-soft:#F7ECDA;
+    --blue:#2F5C8A;
+    --blue-soft:#E2EDF8;
+    --gold:#A97536;
+    --ok:#3E7A4F;
+    --danger:#A33A2E;
+    --timew:52px;
+    --shadow:0 1px 2px rgba(43,32,38,.06), 0 8px 24px -16px rgba(43,32,38,.35);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#181216; --surface:#221A1F; --surface-2:#2C2228; --ink:#F3EAEC; --muted:#AB969D;
+      --line:#3A2E34; --berry:#EC8FA8; --berry-soft:#3A2029; --teal:#74C6B9; --teal-soft:#16302D;
+      --violet:#BC9DE8; --violet-soft:#2A2137; --amber:#D9A45F; --amber-soft:#33281A;
+      --blue:#8DB8E4; --blue-soft:#1A2733;
+      --gold:#D8A463; --ok:#83BC90; --danger:#E7907F;
+      --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 26px -18px rgba(0,0,0,.9);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#181216; --surface:#221A1F; --surface-2:#2C2228; --ink:#F3EAEC; --muted:#AB969D;
+    --line:#3A2E34; --berry:#EC8FA8; --berry-soft:#3A2029; --teal:#74C6B9; --teal-soft:#16302D;
+    --violet:#BC9DE8; --violet-soft:#2A2137; --amber:#D9A45F; --amber-soft:#33281A;
+    --blue:#8DB8E4; --blue-soft:#1A2733;
+    --gold:#D8A463; --ok:#83BC90; --danger:#E7907F;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 26px -18px rgba(0,0,0,.9);
+  }
+
+  *{box-sizing:border-box}
+  body{
+    direction:rtl;background:var(--bg);color:var(--ink);
+    font-family:"Vazirmatn", system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size:15px;line-height:1.7;margin:0;
+  }
+  .wrap{max-width:900px;margin:0 auto;padding:0 16px;padding-block:0 40px}
+
+  header.top{
+    position:sticky; top:env(safe-area-inset-top, 0px); z-index:20;
+    background:color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter:blur(10px);border-bottom:1px solid var(--line);
+  }
+  .top-inner{max-width:900px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .brand{font-family:"Lalezar", "Vazirmatn", sans-serif;font-size:26px;line-height:1.2;color:var(--berry);letter-spacing:.2px}
+  .brand small{display:block;font-family:"Vazirmatn",sans-serif;font-size:11px;font-weight:400;color:var(--muted);letter-spacing:.06em}
+  .pill{
+    margin-inline-start:auto;font-size:11px;color:var(--muted);
+    border:1px solid var(--line);border-radius:999px;padding:3px 10px;white-space:nowrap;
+    display:inline-flex;align-items:center;gap:6px;
+  }
+  .dot{width:6px;height:6px;border-radius:50%;background:var(--ok);flex:none}
+  .dot.warn{background:var(--gold)}
+
+  .datebar{display:flex;align-items:center;gap:8px;margin-top:18px}
+  .navbtn{
+    flex:none;width:34px;height:34px;border-radius:10px;border:1px solid var(--line);
+    background:var(--surface);color:var(--ink);cursor:pointer;font-size:15px;line-height:1;
+  }
+  .navbtn:hover{border-color:var(--berry);color:var(--berry)}
+  .days{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin}
+  .day{
+    flex:none;min-width:60px;padding:6px 8px;border-radius:12px;border:1px solid var(--line);
+    background:var(--surface);cursor:pointer;text-align:center;font-family:inherit;color:var(--ink);
+    display:flex;flex-direction:column;gap:0;line-height:1.35;
+  }
+  .day b{font-size:16px;font-weight:600;font-variant-numeric:tabular-nums}
+  .day span{font-size:10.5px;color:var(--muted)}
+  .day i{font-style:normal;font-size:9.5px;color:var(--muted);letter-spacing:.04em}
+  .day .jal{
+    display:block;font-size:9px;line-height:1.5;color:var(--muted);opacity:.85;
+    margin-top:2px;padding-top:2px;border-top:1px dotted var(--line);
+  }
+  .day[aria-pressed="true"]{background:var(--berry);border-color:var(--berry);color:#fff}
+  .day[aria-pressed="true"] span,.day[aria-pressed="true"] i{color:rgba(255,255,255,.82)}
+  .day[aria-pressed="true"] .jal{color:rgba(255,255,255,.75);border-top-color:rgba(255,255,255,.3)}
+  .day.today:not([aria-pressed="true"]){border-color:var(--berry);border-style:dashed}
+
+  .headline{margin:16px 0 2px;font-size:19px;font-weight:600}
+  .sub{color:var(--muted);font-size:12.5px;margin:0}
+  .sub .latin{font-variant-numeric:tabular-nums;letter-spacing:.02em}
+  .sub .jal-line{font-size:11.5px;color:var(--berry);opacity:.9}
+
+  .stats{display:flex;gap:18px;flex-wrap:wrap;margin:14px 0 18px;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:var(--surface-2)}
+  .stat{display:flex;flex-direction:column;gap:0}
+  .stat b{font-size:18px;font-weight:600;font-variant-numeric:tabular-nums}
+  .stat span{font-size:11px;color:var(--muted);letter-spacing:.04em}
+  .stat.money b{color:var(--gold)}
+
+  .board-scroll{overflow-x:auto;overscroll-behavior-x:contain;padding-bottom:6px}
+  .board{display:grid;gap:8px;align-items:stretch}
+  .corner{background:var(--bg)}
+  .corner,.timelabel{position:sticky;inset-inline-start:0;z-index:2}
+  .scrollhint{margin:6px 0 0;font-size:11px;color:var(--muted);display:none}
+  @media (max-width:760px){ .scrollhint{display:block} }
+  .colhead{
+    padding:9px 12px;border-radius:12px;font-weight:600;font-size:14px;display:flex;align-items:center;gap:8px;
+    background:var(--spec-soft);color:var(--spec);border:1px solid color-mix(in srgb, var(--spec) 28%, transparent);
+  }
+  .colhead .avatar{
+    width:24px;height:24px;border-radius:50%;flex:none;display:grid;place-items:center;
+    background:var(--spec);color:var(--surface);font-size:12px;font-family:"Lalezar",sans-serif;
+  }
+  .colhead em{font-style:normal;font-size:10.5px;font-weight:400;color:var(--muted);margin-inline-start:auto}
+  .timelabel{
+    display:flex;align-items:center;justify-content:center;text-align:center;
+    font-size:12px;font-variant-numeric:tabular-nums;color:var(--muted);
+    border-inline-end:1px solid var(--line);padding-inline-end:6px;
+    background:var(--bg);
+  }
+  .timelabel b{display:block;font-size:13px;font-weight:600;color:var(--ink)}
+
+  .slot{
+    text-align:start;font-family:inherit;font-size:13px;color:var(--ink);
+    border-radius:14px;padding:10px 12px;cursor:pointer;min-height:76px;
+    display:flex;flex-direction:column;gap:6px;width:100%;
+  }
+  .slot.empty{border:1px dashed var(--line);background:transparent;color:var(--muted);align-items:center;justify-content:center;gap:2px}
+  .slot.empty:hover{border-color:var(--spec);color:var(--spec);background:var(--spec-soft)}
+  .slot.empty .plus{font-size:17px;line-height:1}
+  .slot.booked{border:1px solid var(--line);background:var(--surface);box-shadow:var(--shadow);border-inline-start:3px solid var(--spec)}
+  .slot.booked:hover{border-color:var(--spec)}
+  .slot .who{font-weight:600;font-size:14px;display:flex;align-items:center;gap:6px}
+  .slot .who .check{color:var(--ok);font-size:12px}
+  .chips{display:flex;flex-wrap:wrap;gap:4px}
+  .chip{
+    font-size:10.5px;padding:1px 7px;border-radius:999px;
+    background:var(--spec-soft);color:var(--spec);border:1px solid color-mix(in srgb, var(--spec) 22%, transparent);
+  }
+  .slot .foot{margin-top:auto;display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted)}
+  .slot .amount{margin-inline-start:auto;font-variant-numeric:tabular-nums;color:var(--gold);font-weight:600;font-size:12px}
+  .slot.done{opacity:.72}
+
+  details.tariff{margin-top:26px;border:1px solid var(--line);border-radius:14px;background:var(--surface);overflow:hidden}
+  details.tariff summary{padding:12px 14px;cursor:pointer;font-weight:600;font-size:14px;list-style:none;display:flex;align-items:center;gap:8px}
+  details.tariff summary::-webkit-details-marker{display:none}
+  details.tariff summary::after{content:"▾";margin-inline-start:auto;color:var(--muted);font-size:12px}
+  details.tariff[open] summary::after{content:"▴"}
+  .tariff-body{border-top:1px solid var(--line);padding:10px 14px 16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:4px 24px}
+  .tgroup{padding-top:8px}
+  .tgroup h3{margin:0 0 4px;font-size:12px;font-weight:600;color:var(--berry);letter-spacing:.05em;display:flex;gap:8px;align-items:baseline}
+  .tgroup h3 em{font-style:normal;font-size:10.5px;font-weight:400;color:var(--muted)}
+  .trow{display:flex;gap:10px;align-items:center;padding:3px 0;border-bottom:1px dotted var(--line);font-size:13px}
+  .trow input{
+    margin-inline-start:auto;width:106px;flex:none;text-align:left;direction:ltr;
+    font-family:inherit;font-size:12.5px;font-variant-numeric:tabular-nums;color:var(--ink);
+    background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:4px 8px;
+  }
+  .trow input:focus{outline:2px solid var(--berry);outline-offset:1px}
+  .trow u{text-decoration:none;font-size:10.5px;color:var(--muted);flex:none}
+  .tarhint{grid-column:1/-1;margin:10px 0 0;font-size:11.5px;color:var(--muted);border-top:1px dotted var(--line);padding-top:10px}
+
+  .access{
+    margin-top:22px;border:1px solid var(--line);border-radius:16px;background:var(--surface);
+    box-shadow:var(--shadow);padding:16px 18px;display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start;
+  }
+  .access h2{margin:0 0 2px;font-size:15px;font-weight:600}
+  .access .lead{margin:0 0 12px;font-size:12.5px;color:var(--muted)}
+  .access .col{flex:1 1 260px;min-width:0}
+  .qrbox{flex:none;display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px;border-radius:14px;background:#FFFFFF;border:1px solid var(--line)}
+  .qrbox #qr{width:148px;height:148px;display:grid;place-items:center}
+  .qrbox #qr img, .qrbox #qr canvas{display:block;width:148px;height:148px}
+  .qrbox span{font-size:10.5px;color:#7C6B72;text-align:center;line-height:1.5}
+  .steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:9px;counter-reset:s}
+  .steps li{position:relative;padding-inline-start:26px;font-size:13px;line-height:1.75;counter-increment:s}
+  .steps li::before{
+    content:counter(s);position:absolute;inset-inline-start:0;top:4px;width:18px;height:18px;border-radius:50%;
+    background:var(--berry-soft);color:var(--berry);font-size:10.5px;font-weight:600;display:grid;place-items:center;font-variant-numeric:tabular-nums;
+  }
+  .linkrow{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap}
+  .linkrow #storeInfo{align-self:center;font-size:11.5px;color:var(--muted)}
+  .linkrow input{
+    flex:1;min-width:0;font-family:"Vazirmatn",monospace;font-size:11.5px;direction:ltr;text-align:left;
+    background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 10px;color:var(--ink);
+  }
+  .linkrow button{
+    flex:none;font-family:inherit;font-size:12.5px;font-weight:600;padding:8px 14px;border-radius:10px;
+    border:1px solid var(--line);background:var(--surface-2);color:var(--ink);cursor:pointer;
+  }
+  .linkrow button:hover{border-color:var(--berry);color:var(--berry)}
+  .tip{margin:12px 0 0;font-size:11.5px;color:var(--muted);border-top:1px dotted var(--line);padding-top:10px}
+  .tip b{color:var(--ink);font-weight:600}
+
+  .note{margin-top:18px;font-size:11.5px;color:var(--muted);text-align:center}
+
+  .overlay{position:fixed;inset:0;z-index:40;background:rgba(30,20,25,.5);display:flex;align-items:flex-end;justify-content:center;padding:0}
+  @media (min-width:640px){ .overlay{align-items:center;padding:24px} }
+  .sheet{
+    background:var(--surface);color:var(--ink);width:100%;max-width:540px;
+    border-radius:20px 20px 0 0;border:1px solid var(--line);
+    max-height:92vh;overflow-y:auto;box-shadow:0 -10px 40px rgba(0,0,0,.25);
+    padding-bottom:env(safe-area-inset-bottom, 0px);
+  }
+  @media (min-width:640px){ .sheet{border-radius:20px} }
+  .sheet-head{
+    position:sticky;top:0;background:var(--surface);z-index:2;padding:14px 18px 10px;
+    border-bottom:1px solid var(--line);display:flex;align-items:flex-start;gap:10px;
+  }
+  .sheet-head h2{margin:0;font-size:16px;font-weight:600}
+  .sheet-head p{margin:2px 0 0;font-size:11.5px;color:var(--muted)}
+  .x{margin-inline-start:auto;border:none;background:var(--surface-2);color:var(--muted);width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:15px;line-height:1;flex:none}
+  .x:hover{color:var(--ink)}
+  .sheet-body{padding:14px 18px 6px;display:flex;flex-direction:column;gap:14px}
+  .field{display:flex;flex-direction:column;gap:5px}
+  .field label{font-size:12px;color:var(--muted);font-weight:500}
+  .field input[type="text"], .field input[type="tel"], .field textarea{
+    font-family:inherit;font-size:14px;color:var(--ink);background:var(--bg);
+    border:1px solid var(--line);border-radius:10px;padding:9px 11px;width:100%;
+  }
+  .field input:focus, .field textarea:focus, .svc:focus-visible, button:focus-visible{outline:2px solid var(--berry);outline-offset:2px}
+  .field textarea{resize:vertical;min-height:52px}
+  .svcgroup{display:flex;flex-direction:column;gap:6px}
+  .svcgroup h4{margin:0;font-size:11.5px;font-weight:600;color:var(--muted);letter-spacing:.06em;display:flex;align-items:center;gap:8px}
+  .svcgroup h4::after{content:"";height:1px;flex:1;background:var(--line)}
+  .svcgroup h4 .n{color:var(--berry);font-variant-numeric:tabular-nums}
+  .svcgrid{display:flex;flex-wrap:wrap;gap:6px}
+  .svc{
+    font-family:inherit;font-size:12.5px;padding:5px 11px;border-radius:999px;cursor:pointer;
+    border:1px solid var(--line);background:var(--bg);color:var(--ink);display:inline-flex;gap:6px;align-items:center;
+  }
+  .svc small{color:var(--muted);font-size:10.5px;font-variant-numeric:tabular-nums}
+  .svc[aria-pressed="true"]{background:var(--berry);border-color:var(--berry);color:#fff}
+  .svc[aria-pressed="true"] small{color:rgba(255,255,255,.78)}
+  .totalrow{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:var(--surface-2);border:1px solid var(--line);font-size:13px;position:sticky;bottom:0}
+  .totalrow b{margin-inline-start:auto;font-size:16px;color:var(--gold);font-variant-numeric:tabular-nums}
+  .switch{display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer}
+  .switch input{width:16px;height:16px;accent-color:var(--ok)}
+  .sheet-foot{position:sticky;bottom:0;background:var(--surface);border-top:1px solid var(--line);padding:12px 18px;display:flex;gap:8px;align-items:center}
+  .btn{font-family:inherit;font-size:14px;font-weight:600;padding:10px 18px;border-radius:11px;border:1px solid transparent;cursor:pointer}
+  .btn.primary{background:var(--berry);color:#fff}
+  .btn.primary:hover{filter:brightness(1.08)}
+  .btn.ghost{background:transparent;border-color:var(--line);color:var(--ink)}
+  .btn.danger{background:transparent;border-color:transparent;color:var(--danger);margin-inline-end:auto;padding-inline:4px}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .err{font-size:12px;color:var(--danger);min-height:0}
+
+  .toast{
+    position:fixed;bottom:calc(18px + env(safe-area-inset-bottom, 0px));left:50%;transform:translateX(-50%);
+    background:var(--ink);color:var(--bg);font-size:13px;padding:8px 16px;border-radius:999px;z-index:60;box-shadow:0 6px 20px rgba(0,0,0,.3);
+  }
+  @media (prefers-reduced-motion:no-preference){
+    .toast{animation:rise .25s ease}
+    @keyframes rise{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}
+  }
+  @media (max-width:520px){
+    :root{--timew:42px}
+    .board{gap:6px}
+    .slot{padding:8px 9px;min-height:70px}
+    .colhead{padding:7px 8px;font-size:12.5px}
+    .colhead em{display:none}
+    .brand{font-size:22px}
+  }
+</style>
+
+</head>
+<body>
+<header class="top">
+  <div class="top-inner">
+    <div class="brand">اینفینیا<small>دفتر نوبت سالن زیبایی</small></div>
+    <div class="pill" id="storagePill"><span class="dot" id="storageDot"></span><span id="storageText">در حال اتصال…</span></div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="datebar">
+    <button class="navbtn" id="prevBtn" aria-label="روز قبل">›</button>
+    <div class="days" id="days"></div>
+    <button class="navbtn" id="nextBtn" aria-label="روز بعد">‹</button>
+  </div>
+
+  <h1 class="headline" id="dateTitle">—</h1>
+  <p class="sub"><span class="jal-line" id="dateJalali">—</span> · <span class="latin" id="dateLatin">—</span> · <span id="dateHint">برای ثبت نوبت، روی خانهٔ خالیِ زیر نام متخصص بزنید.</span></p>
+
+  <div class="stats">
+    <div class="stat"><b id="stCount">۰</b><span>نوبت ثبت‌شده</span></div>
+    <div class="stat"><b id="stFree">۰</b><span>جای خالی</span></div>
+    <div class="stat"><b id="stDone">۰</b><span>انجام‌شده</span></div>
+    <div class="stat money"><b id="stSum">۰</b><span>جمع مبلغ (تومان)</span></div>
+  </div>
+
+  <div class="board-scroll"><div class="board" id="board"></div></div>
+  <p class="scrollhint">جدول را با انگشت به چپ و راست بکشید تا همهٔ متخصص‌ها را ببینید.</p>
+
+  <details class="tariff">
+    <summary>تعرفهٔ خدمات</summary>
+    <div class="tariff-body" id="tariff"></div>
+  </details>
+
+  <section class="access">
+    <div class="col">
+      <h2>نوبت‌ها کجا ذخیره می‌شوند؟</h2>
+      <p class="lead">روی همین دستگاه، در حافظهٔ مرورگر. نه حسابی لازم دارد نه اینترنتی — ولی بین گوشی و لپ‌تاپ همگام نمی‌شود. برای جابه‌جایی یا نسخهٔ پشتیبان از این دو دکمه استفاده کنید.</p>
+      <div class="linkrow">
+        <button type="button" id="exportBtn">گرفتن پشتیبان</button>
+        <button type="button" id="importBtn">بازیابی از فایل</button>
+        <span id="storeInfo"></span>
+      </div>
+      <input type="file" id="importFile" accept="application/json,.json" hidden>
+      <p class="tip"><b>یادتان باشد:</b> اگر داده‌های سایت را در مرورگر پاک کنید، نوبت‌ها هم پاک می‌شوند. هفته‌ای یک‌بار پشتیبان بگیرید و فایلش را برای خودتان در واتس‌اپ بفرستید تا همیشه یک نسخه جای امن باشد.</p>
+    </div>
+  </section>
+
+  <p class="note">ساعات کاری: ۰۹:۳۰ · ۱۱:۳۰ · ۱۳:۳۰ · ۱۵:۳۰ · ۱۷:۰۰ — هر متخصص در هر ساعت یک نوبت.</p>
+</div>
+
+<div class="overlay" id="overlay" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+    <div class="sheet-head">
+      <div>
+        <h2 id="sheetTitle">ثبت نوبت</h2>
+        <p id="sheetSub">—</p>
+      </div>
+      <button class="x" id="closeBtn" aria-label="بستن">✕</button>
+    </div>
+    <div class="sheet-body">
+      <div class="field">
+        <label for="f-name">نام مشتری</label>
+        <input type="text" id="f-name" placeholder="مثلاً خانم محمدی" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="f-phone">شماره تماس <span style="opacity:.7">(اختیاری)</span></label>
+        <input type="tel" id="f-phone" placeholder="۰۹…" autocomplete="off" dir="ltr" style="text-align:right">
+      </div>
+      <div class="field">
+        <label>خدمات سفارش‌داده‌شده</label>
+        <div id="svcHost" style="display:flex;flex-direction:column;gap:12px"></div>
+      </div>
+      <div class="totalrow">جمع خدمات انتخاب‌شده <b id="totalOut">۰</b></div>
+      <div class="field">
+        <label for="f-note">یادداشت <span style="opacity:.7">(اختیاری)</span></label>
+        <textarea id="f-note" placeholder="مثلاً: طرح ناخن، رنگ لاک، حساسیت پوستی، تخفیف معرفی…"></textarea>
+      </div>
+      <label class="switch" id="doneWrap" hidden><input type="checkbox" id="f-done"> این نوبت انجام شد</label>
+      <p class="err" id="formErr"></p>
+    </div>
+    <div class="sheet-foot">
+      <button class="btn danger" id="deleteBtn" hidden>لغو نوبت</button>
+      <button class="btn ghost" id="cancelBtn">انصراف</button>
+      <button class="btn primary" id="saveBtn">ثبت نوبت</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  document.documentElement.setAttribute("dir", "rtl");
+  document.documentElement.setAttribute("lang", "fa");
+
+  /* ---------- data ---------- */
+  var SLOTS = [
+    { id: "0930", label: "۰۹:۳۰" },
+    { id: "1130", label: "۱۱:۳۰" },
+    { id: "1330", label: "۱۳:۳۰" },
+    { id: "1530", label: "۱۵:۳۰" },
+    { id: "1700", label: "۱۷:۰۰" }
+  ];
+  var SPECIALISTS = [
+    { id: "bahar",  name: "بهار جون",  initial: "ب", role: "خدمات دست",
+      groups: ["hand"], color: "var(--berry)", soft: "var(--berry-soft)" },
+    { id: "shirin", name: "شیرین جون", initial: "ش", role: "خدمات دست و پا",
+      groups: ["hand", "foot"], color: "var(--teal)", soft: "var(--teal-soft)" },
+    { id: "mahsa",  name: "مهسا جون",  initial: "م", role: "لیزر",
+      groups: ["laser"], color: "var(--violet)", soft: "var(--violet-soft)" },
+    { id: "sahar",  name: "سحر جون",   initial: "س", role: "خدمات مژه",
+      groups: ["lash"], color: "var(--amber)", soft: "var(--amber-soft)" },
+    { id: "razieh", name: "راضیه جون", initial: "ر", role: "خدمات ابرو",
+      groups: ["brow"], color: "var(--blue)", soft: "var(--blue-soft)" }
+  ];
+  var GROUPS = [
+    { id: "hand", name: "خدمات دست", by: "بهار جون، شیرین جون", items: [
+      { id: "h_mani",  name: "مانیکور",              price: 250000 },
+      { id: "h_lam",   name: "ترمیم لمینت",          price: 400000 },
+      { id: "h_gel",   name: "ترمیم ژل",             price: 350000 },
+      { id: "h_poly",  name: "ترمیم پلی ژل",         price: 400000 },
+      { id: "h_nail",  name: "کاشت ناخن (پروتز)",    price: 800000 },
+      { id: "h_remo",  name: "ریمو",                 price: 150000 },
+      { id: "h_para",  name: "پارافین تراپی",        price: 300000 }
+    ]},
+    { id: "foot", name: "خدمات پا", by: "شیرین جون", items: [
+      { id: "f_dry",   name: "ژلیش پا (پدیکور خشک)",           price: 450000 },
+      { id: "f_spa",   name: "ژلیش پا (پدیکور اسپا)",          price: 600000 },
+      { id: "f_lux",   name: "ژلیش پا (پدیکور لوکس، ژله‌ای)",  price: 750000 },
+      { id: "f_milk",  name: "ژلیش پا (پدیکور شیر و عسل)",     price: 700000 }
+    ]},
+    { id: "laser", name: "لیزر", by: "مهسا جون", items: [
+      { id: "l_full",  name: "لیزر کامل بدن",        price: 2500000 },
+      { id: "l_face",  name: "لیزر صورت",            price: 600000 },
+      { id: "l_under", name: "لیزر زیربغل",          price: 350000 },
+      { id: "l_bikini",name: "لیزر بیکینی",          price: 700000 },
+      { id: "l_legs",  name: "لیزر ساق پا",          price: 900000 },
+      { id: "l_arms",  name: "لیزر دست و بازو",      price: 650000 }
+    ]},
+    { id: "lash", name: "خدمات مژه", by: "سحر جون", items: [
+      { id: "m_class", name: "اکستنشن کلاسیک",       price: 900000 },
+      { id: "m_vol",   name: "اکستنشن حجمی (ولوم)",  price: 1300000 },
+      { id: "m_fix",   name: "ترمیم مژه",            price: 450000 },
+      { id: "m_lift",  name: "لیفت مژه",             price: 700000 },
+      { id: "m_lam",   name: "لمینت مژه",            price: 750000 },
+      { id: "m_remo",  name: "ریمو مژه",             price: 200000 }
+    ]},
+    { id: "brow", name: "خدمات ابرو", by: "راضیه جون", items: [
+      { id: "b_shape", name: "اصلاح و فرم ابرو",     price: 150000 },
+      { id: "b_color", name: "رنگ ابرو",             price: 220000 },
+      { id: "b_lam",   name: "لمینت ابرو",           price: 650000 },
+      { id: "b_lift",  name: "لیفت ابرو",            price: 600000 },
+      { id: "b_micro", name: "هاشور و میکروبلیدینگ", price: 2800000 },
+      { id: "b_ombre", name: "آمبره ابرو",           price: 3000000 }
+    ]}
+  ];
+  var SVC_BY_ID = {}, PRICES = {};
+  GROUPS.forEach(function (g) {
+    g.items.forEach(function (s) { SVC_BY_ID[s.id] = s; PRICES[s.id] = s.price; });
+  });
+  function priceOf(id) {
+    var p = PRICES[id];
+    return typeof p === "number" && isFinite(p) ? p : 0;
+  }
+
+  /* ---------- helpers ---------- */
+  function fa(n) { try { return Number(n).toLocaleString("fa-IR"); } catch (e) { return String(n); } }
+  function faDigits(s) {
+    var d = "۰۱۲۳۴۵۶۷۸۹";
+    return String(s).replace(/[0-9]/g, function (c) { return d[+c]; });
+  }
+  function toLatinDigits(s) {
+    return String(s)
+      .replace(/[۰-۹]/g, function (c) { return String(c.charCodeAt(0) - 1776); })
+      .replace(/[٠-٩]/g, function (c) { return String(c.charCodeAt(0) - 1632); });
+  }
+  function parseNum(s) {
+    var n = parseInt(toLatinDigits(s).replace(/[^0-9]/g, ""), 10);
+    return isFinite(n) ? n : 0;
+  }
+  function keyOf(d) {
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  }
+  function dateFromKey(k) { var p = k.split("-"); return new Date(+p[0], +p[1] - 1, +p[2]); }
+  function gFmt(d, opts) {
+    try { return new Intl.DateTimeFormat("fa-IR-u-ca-gregory", opts).format(d); }
+    catch (e) { return new Intl.DateTimeFormat("en-GB", opts).format(d); }
+  }
+  /* Hijri-shamsi (Persian) calendar, shown small beside the Gregorian date */
+  function jFmt(d, opts) {
+    try { return new Intl.DateTimeFormat("fa-IR-u-ca-persian", opts).format(d); }
+    catch (e) { return ""; }
+  }
+  function latin(d) {
+    try { return new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" }).format(d); }
+    catch (e) { return keyOf(d); }
+  }
+  function addDays(d, n) { var x = new Date(d.getTime()); x.setDate(x.getDate() + n); return x; }
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  var $ = function (id) { return document.getElementById(id); };
+
+  /* ---------- state ---------- */
+  var today = new Date(); today.setHours(0, 0, 0, 0);
+  var state = {
+    dateKey: keyOf(today),
+    weekStart: addDays(today, -1),
+    items: {},
+    editing: null,
+    picked: {},
+    canWrite: true
+  };
+  var board;
+
+  function bookingId(spec, slot) { return state.dateKey + "_" + spec + "_" + slot; }
+  function specById(id) { return SPECIALISTS.filter(function (s) { return s.id === id; })[0]; }
+  function groupById(id) { return GROUPS.filter(function (g) { return g.id === id; })[0]; }
+
+  /* ---------- rendering ---------- */
+  function renderDays() {
+    var host = $("days");
+    host.textContent = "";
+    for (var i = 0; i < 10; i++) {
+      var d = addDays(state.weekStart, i);
+      var k = keyOf(d);
+      var b = document.createElement("button");
+      b.className = "day" + (k === keyOf(today) ? " today" : "");
+      b.type = "button";
+      b.setAttribute("aria-pressed", k === state.dateKey ? "true" : "false");
+      b.dataset.key = k;
+      b.innerHTML = "<b>" + esc(gFmt(d, { day: "numeric" })) + "</b><span>" +
+                    esc(gFmt(d, { weekday: "short" })) + "</span><i>" +
+                    esc(gFmt(d, { month: "short" })) + "</i><span class=\"jal\">" +
+                    esc(jFmt(d, { day: "numeric", month: "long" })) + "</span>";
+      host.appendChild(b);
+    }
+  }
+
+  function renderHeader() {
+    var d = dateFromKey(state.dateKey);
+    $("dateTitle").textContent = gFmt(d, { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+    $("dateJalali").textContent = jFmt(d, { day: "numeric", month: "long", year: "numeric" });
+    $("dateLatin").textContent = latin(d);
+    $("dateHint").textContent = state.canWrite
+      ? "برای ثبت نوبت، روی خانهٔ خالیِ زیر نام متخصص بزنید."
+      : "شما دسترسی فقط‌خواندنی دارید؛ نوبت‌ها قابل تغییر نیستند.";
+  }
+
+  function renderBoard() {
+    board.textContent = "";
+    board.style.gridTemplateColumns = "var(--timew) repeat(" + SPECIALISTS.length + ", minmax(150px, 1fr))";
+    var frag = document.createDocumentFragment();
+    var corner = document.createElement("div");
+    corner.className = "corner";
+    frag.appendChild(corner);
+    SPECIALISTS.forEach(function (sp) {
+      var h = document.createElement("div");
+      h.className = "colhead";
+      h.style.setProperty("--spec", sp.color);
+      h.style.setProperty("--spec-soft", sp.soft);
+      h.innerHTML = '<span class="avatar">' + esc(sp.initial) + "</span>" + esc(sp.name) + "<em>" + esc(sp.role) + "</em>";
+      frag.appendChild(h);
+    });
+
+    var count = 0, done = 0, sum = 0;
+    SLOTS.forEach(function (sl) {
+      var t = document.createElement("div");
+      t.className = "timelabel";
+      t.innerHTML = "<b>" + esc(sl.label) + "</b>";
+      frag.appendChild(t);
+
+      SPECIALISTS.forEach(function (sp) {
+        var bk = state.items[bookingId(sp.id, sl.id)];
+        var b = document.createElement("button");
+        b.type = "button";
+        b.dataset.spec = sp.id;
+        b.dataset.slot = sl.id;
+        b.style.setProperty("--spec", sp.color);
+        b.style.setProperty("--spec-soft", sp.soft);
+        if (!bk) {
+          b.className = "slot empty";
+          b.innerHTML = '<span class="plus">+</span><span>خالی</span>';
+          b.setAttribute("aria-label", "ثبت نوبت " + sl.label + " برای " + sp.name);
+        } else {
+          count++; if (bk.done) done++; sum += Number(bk.amount || 0);
+          var chips = (bk.services || []).map(function (id) {
+            return SVC_BY_ID[id] ? '<span class="chip">' + esc(SVC_BY_ID[id].name) + "</span>" : "";
+          }).join("");
+          b.className = "slot booked" + (bk.done ? " done" : "");
+          b.innerHTML =
+            '<span class="who">' + (bk.done ? '<span class="check">✓</span>' : "") + esc(bk.name) + "</span>" +
+            '<span class="chips">' + (chips || '<span class="chip">بدون خدمت</span>') + "</span>" +
+            '<span class="foot">' + (bk.phone ? esc(faDigits(bk.phone)) : "") +
+            '<span class="amount">' + fa(bk.amount || 0) + " تومان</span></span>";
+          b.setAttribute("aria-label", "نوبت " + bk.name + " در " + sl.label + " نزد " + sp.name);
+        }
+        frag.appendChild(b);
+      });
+    });
+
+    board.appendChild(frag);
+    $("stCount").textContent = fa(count);
+    $("stFree").textContent = fa(SLOTS.length * SPECIALISTS.length - count);
+    $("stDone").textContent = fa(done);
+    $("stSum").textContent = fa(sum);
+  }
+
+  function renderTariff() {
+    var host = $("tariff");
+    host.textContent = "";
+    GROUPS.forEach(function (g) {
+      var sec = document.createElement("div");
+      sec.className = "tgroup";
+      var rows = g.items.map(function (s) {
+        return '<div class="trow">' + esc(s.name) +
+               '<input type="text" inputmode="numeric" id="price-' + s.id + '" data-price="' + s.id +
+               '" aria-label="قیمت ' + esc(s.name) + '"><u>تومان</u></div>';
+      }).join("");
+      sec.innerHTML = "<h3>" + esc(g.name) + "<em>" + esc(g.by) + "</em></h3>" + rows;
+      host.appendChild(sec);
+    });
+    var hint = document.createElement("p");
+    hint.className = "tarhint";
+    hint.innerHTML = "قیمت‌ها را همین‌جا می‌توانید عوض کنید؛ ذخیره خودکار است و برای همهٔ دستگاه‌ها اعمال می‌شود. " +
+                     "مبلغ نوبت‌های ثبت‌شدهٔ قبلی دست‌نخورده می‌ماند.";
+    host.appendChild(hint);
+    syncPriceInputs();
+  }
+
+  function syncPriceInputs() {
+    GROUPS.forEach(function (g) {
+      g.items.forEach(function (s) {
+        var el = $("price-" + s.id);
+        if (el && document.activeElement !== el) el.value = priceOf(s.id).toLocaleString("en-US");
+      });
+    });
+  }
+
+  function renderAll() { renderDays(); renderHeader(); renderBoard(); }
+
+  /* ---------- booking sheet ---------- */
+  function buildServiceButtons(spec) {
+    var sp = specById(spec);
+    var host = $("svcHost");
+    host.textContent = "";
+    sp.groups.forEach(function (gid) {
+      var g = groupById(gid);
+      var wrap = document.createElement("div");
+      wrap.className = "svcgroup";
+      var chips = g.items.map(function (s) {
+        return '<button type="button" class="svc" id="svc-' + s.id + '" data-svc="' + s.id +
+               '" aria-pressed="false">' + esc(s.name) + "<small>" + fa(priceOf(s.id)) + "</small></button>";
+      }).join("");
+      wrap.innerHTML = '<h4>' + esc(g.name) + ' <span class="n" id="cnt-' + g.id + '"></span></h4>' +
+                       '<div class="svcgrid">' + chips + "</div>";
+      host.appendChild(wrap);
+    });
+  }
+
+  function syncServiceButtons(spec) {
+    var sp = specById(spec), total = 0;
+    sp.groups.forEach(function (gid) {
+      var g = groupById(gid), n = 0;
+      g.items.forEach(function (s) {
+        var b = $("svc-" + s.id);
+        if (!b) return;
+        var on = !!state.picked[s.id];
+        b.setAttribute("aria-pressed", on ? "true" : "false");
+        if (on) { n++; total += priceOf(s.id); }
+      });
+      var c = $("cnt-" + g.id);
+      if (c) c.textContent = n ? "(" + fa(n) + ")" : "";
+    });
+    $("totalOut").textContent = fa(total) + " تومان";
+    return total;
+  }
+
+  function openSheet(spec, slot) {
+    var sp = specById(spec);
+    var sl = SLOTS.filter(function (s) { return s.id === slot; })[0];
+    var id = bookingId(spec, slot);
+    var existing = state.items[id] || null;
+
+    state.editing = { spec: spec, slot: slot, id: id, existing: existing };
+    state.picked = {};
+    if (existing) (existing.services || []).forEach(function (s) { state.picked[s] = true; });
+
+    $("sheetTitle").textContent = existing ? "ویرایش نوبت" : "ثبت نوبت تازه";
+    var dd = dateFromKey(state.dateKey);
+    var jal = jFmt(dd, { day: "numeric", month: "long" });
+    $("sheetSub").textContent = sp.name + " — ساعت " + sl.label + " — " +
+      gFmt(dd, { weekday: "long", day: "numeric", month: "long" }) + (jal ? " (" + jal + ")" : "");
+    $("f-name").value = existing ? existing.name || "" : "";
+    $("f-phone").value = existing ? existing.phone || "" : "";
+    $("f-note").value = existing ? existing.note || "" : "";
+    $("f-done").checked = !!(existing && existing.done);
+    $("doneWrap").hidden = !existing;
+    $("deleteBtn").hidden = !existing;
+    $("saveBtn").textContent = existing ? "ذخیرهٔ تغییرات" : "ثبت نوبت";
+    $("saveBtn").disabled = !state.canWrite;
+    $("deleteBtn").disabled = !state.canWrite;
+    $("formErr").textContent = state.canWrite ? "" : "دسترسی شما فقط‌خواندنی است.";
+
+    buildServiceButtons(spec);
+    syncServiceButtons(spec);
+    $("overlay").hidden = false;
+    setTimeout(function () { $("f-name").focus(); }, 30);
+  }
+
+  function closeSheet() { $("overlay").hidden = true; state.editing = null; }
+
+  function toast(msg) {
+    var t = document.createElement("div");
+    t.className = "toast";
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(function () { t.remove(); }, 2200);
+  }
+
+  function setStorage(ok, text) {
+    $("storageDot").className = "dot" + (ok ? "" : " warn");
+    $("storageText").textContent = text;
+  }
+
+  function applyLocal(id, data) {
+    if (data === null) delete state.items[id]; else state.items[id] = data;
+    renderBoard();
+  }
+
+  function saveBooking() {
+    if (!state.editing || !state.canWrite) return;
+    var name = $("f-name").value.trim();
+    if (!name) { $("formErr").textContent = "نام مشتری را وارد کنید."; $("f-name").focus(); return; }
+    var sp = specById(state.editing.spec);
+    var allowed = {};
+    sp.groups.forEach(function (gid) {
+      groupById(gid).items.forEach(function (s) { allowed[s.id] = true; });
+    });
+    var services = Object.keys(state.picked).filter(function (k) { return state.picked[k] && allowed[k]; });
+    var amount = services.reduce(function (a, k) { return a + priceOf(k); }, 0);
+    var rec = {
+      date: state.dateKey, slot: state.editing.slot, spec: state.editing.spec,
+      name: name, phone: $("f-phone").value.trim(),
+      services: services, amount: amount,
+      note: $("f-note").value.trim(), done: $("f-done").checked,
+      updatedAt: new Date().toISOString()
+    };
+    var id = state.editing.id, wasNew = !state.editing.existing;
+    closeSheet();
+    applyLocal(id, rec);
+    adapter.saveBooking(id, rec, wasNew);
+  }
+
+  function deleteBooking() {
+    if (!state.editing || !state.editing.existing || !state.canWrite) return;
+    var id = state.editing.id;
+    closeSheet();
+    applyLocal(id, null);
+    adapter.deleteBooking(id);
+  }
+
+  function onPrices(obj) {
+    if (!obj) return;
+    Object.keys(obj).forEach(function (k) {
+      if (SVC_BY_ID[k] && typeof obj[k] === "number") PRICES[k] = obj[k];
+    });
+    syncPriceInputs();
+    if (state.editing) syncServiceButtons(state.editing.spec);
+  }
+
+  function onBookings(map) { state.items = map; renderBoard(); }
+
+  function goDate(k) {
+    if (k === state.dateKey) return;
+    state.dateKey = k;
+    state.items = {};
+    renderAll();
+    adapter.watchDate(k);
+  }
+
+  /* ===== ADAPTER-START ===== */
+  /* Storage adapter — browser localStorage (this device only, no sign-in). */
+  var BOOK_KEY = "infinia_noubat_v1", PRICE_KEY = "infinia_prices_v1";
+  var adapter = {
+    readAll: function () {
+      try { return JSON.parse(localStorage.getItem(BOOK_KEY) || "{}") || {}; }
+      catch (e) { return {}; }
+    },
+    writeAll: function (all) {
+      try { localStorage.setItem(BOOK_KEY, JSON.stringify(all)); return true; }
+      catch (e) { return false; }
+    },
+    count: function () {
+      var el = $("storeInfo");
+      if (!el) return;
+      var n = Object.keys(adapter.readAll()).length;
+      el.textContent = n ? "مجموع " + fa(n) + " نوبت ذخیره‌شده" : "هنوز نوبتی ذخیره نشده";
+    },
+
+    init: function () {
+      var ok = false;
+      try { localStorage.setItem("__infinia", "1"); localStorage.removeItem("__infinia"); ok = true; } catch (e) {}
+      setStorage(ok, ok ? "ذخیره روی همین دستگاه" : "حافظهٔ مرورگر بسته است — موقتی");
+      try {
+        var p = JSON.parse(localStorage.getItem(PRICE_KEY) || "null");
+        if (p) onPrices(p);
+      } catch (e) {}
+      adapter.watchDate(state.dateKey);
+      adapter.count();
+    },
+
+    watchDate: function (k) {
+      var all = adapter.readAll(), next = {};
+      Object.keys(all).forEach(function (id) {
+        if (all[id] && all[id].date === k) next[id] = all[id];
+      });
+      onBookings(next);
+    },
+
+    saveBooking: function (id, rec, wasNew) {
+      var all = adapter.readAll();
+      all[id] = rec;
+      var ok = adapter.writeAll(all);
+      adapter.count();
+      toast(ok ? (wasNew ? "نوبت ثبت شد." : "تغییرات ذخیره شد.") : "ذخیره نشد — حافظهٔ مرورگر در دسترس نیست.");
+    },
+
+    deleteBooking: function (id) {
+      var all = adapter.readAll();
+      delete all[id];
+      var ok = adapter.writeAll(all);
+      adapter.count();
+      toast(ok ? "نوبت لغو شد." : "لغو ذخیره نشد — حافظهٔ مرورگر در دسترس نیست.");
+    },
+
+    savePrices: function () {
+      try { localStorage.setItem(PRICE_KEY, JSON.stringify(PRICES)); } catch (e) {}
+    },
+
+    setupSection: function () {
+      $("exportBtn").addEventListener("click", function () {
+        var payload = {
+          app: "infinia-noubat", version: 1, savedAt: new Date().toISOString(),
+          prices: PRICES, bookings: adapter.readAll()
+        };
+        var blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+        var a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "infinia-noubat-" + keyOf(new Date()) + ".json";
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+        toast("فایل پشتیبان ساخته شد.");
+      });
+      $("importBtn").addEventListener("click", function () { $("importFile").click(); });
+      $("importFile").addEventListener("change", function (e) {
+        var f = e.target.files && e.target.files[0];
+        if (!f) return;
+        var r = new FileReader();
+        r.onload = function () {
+          try {
+            var parsed = JSON.parse(String(r.result));
+            var incoming = parsed && parsed.bookings ? parsed.bookings : parsed;
+            if (!incoming || typeof incoming !== "object") throw new Error("bad file");
+            var all = adapter.readAll(), n = 0;
+            Object.keys(incoming).forEach(function (k) {
+              if (incoming[k] && incoming[k].date) { all[k] = incoming[k]; n++; }
+            });
+            adapter.writeAll(all);
+            if (parsed && parsed.prices) { onPrices(parsed.prices); adapter.savePrices(); }
+            adapter.watchDate(state.dateKey);
+            adapter.count();
+            toast(fa(n) + " نوبت بازیابی شد.");
+          } catch (err) {
+            toast("فایل خوانده نشد؛ فایل پشتیبانِ درست را انتخاب کنید.");
+          }
+        };
+        r.readAsText(f);
+        e.target.value = "";
+      });
+    }
+  };
+  /* ===== ADAPTER-END ===== */
+
+  /* ---------- events ---------- */
+  function wire() {
+    board = $("board");
+    board.addEventListener("click", function (e) {
+      var b = e.target.closest ? e.target.closest(".slot") : null;
+      if (b) openSheet(b.dataset.spec, b.dataset.slot);
+    });
+    $("days").addEventListener("click", function (e) {
+      var b = e.target.closest ? e.target.closest(".day") : null;
+      if (b) goDate(b.dataset.key);
+    });
+    $("prevBtn").addEventListener("click", function () {
+      var d = addDays(dateFromKey(state.dateKey), -1);
+      if (d < state.weekStart) state.weekStart = addDays(state.weekStart, -3);
+      goDate(keyOf(d));
+      renderDays();
+    });
+    $("nextBtn").addEventListener("click", function () {
+      var d = addDays(dateFromKey(state.dateKey), 1);
+      if (d > addDays(state.weekStart, 9)) state.weekStart = addDays(state.weekStart, 3);
+      goDate(keyOf(d));
+      renderDays();
+    });
+    $("svcHost").addEventListener("click", function (e) {
+      var b = e.target.closest ? e.target.closest(".svc") : null;
+      if (!b || !state.editing) return;
+      var id = b.dataset.svc;
+      if (state.picked[id]) delete state.picked[id]; else state.picked[id] = true;
+      syncServiceButtons(state.editing.spec);
+    });
+    $("tariff").addEventListener("change", function (e) {
+      var el = e.target;
+      if (!el || !el.dataset || !el.dataset.price) return;
+      if (!state.canWrite) { syncPriceInputs(); toast("دسترسی شما فقط‌خواندنی است."); return; }
+      PRICES[el.dataset.price] = parseNum(el.value);
+      el.value = priceOf(el.dataset.price).toLocaleString("en-US");
+      adapter.savePrices();
+      if (state.editing) syncServiceButtons(state.editing.spec);
+    });
+    $("saveBtn").addEventListener("click", saveBooking);
+    $("deleteBtn").addEventListener("click", deleteBooking);
+    $("cancelBtn").addEventListener("click", closeSheet);
+    $("closeBtn").addEventListener("click", closeSheet);
+    $("overlay").addEventListener("click", function (e) { if (e.target === $("overlay")) closeSheet(); });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && !$("overlay").hidden) closeSheet();
+      if (e.key === "Enter" && !$("overlay").hidden && e.target && e.target.id === "f-name") saveBooking();
+    });
+  }
+
+  /* ---------- boot ---------- */
+  /* The calendar must appear even if something later fails, so each stage is
+     guarded: a broken extra never takes the booking grid down with it. */
+  function step(fn, label) {
+    try { fn(); } catch (e) {
+      if (window.console && console.error) console.error("infinia:" + label, e);
+      return false;
+    }
+    return true;
+  }
+
+  var okWire = step(wire, "wire");
+  var okTariff = step(renderTariff, "tariff");
+  var okRender = step(renderAll, "render");
+  if (!(okWire && okTariff && okRender)) {
+    $("board").innerHTML = '<p style="grid-column:1/-1;padding:16px;text-align:center;color:var(--danger)">' +
+      "صفحه درست بارگذاری نشد. یک‌بار صفحه را تازه کنید." + "</p>";
+  }
+  step(function () { adapter.setupSection(); }, "section");
+  step(function () { adapter.init(); }, "init");
+})();
+</script>
+
+</body>
+</html>
