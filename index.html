@@ -244,6 +244,17 @@
     margin-inline-start:auto;font-size:11px;color:var(--berry);
     background:var(--berry-soft);border-radius:999px;padding:2px 10px;
   }
+  .sendbar{
+    display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+    padding:12px 16px;border-bottom:1px solid var(--line);background:var(--surface-2);
+  }
+  .sendall{
+    font-family:inherit;font-size:14px;font-weight:600;padding:10px 20px;border-radius:11px;
+    border:none;background:#1E8E5A;color:#fff;cursor:pointer;
+  }
+  .sendall:hover:not(:disabled){filter:brightness(1.08)}
+  .sendall:disabled{opacity:.55;cursor:not-allowed}
+  .sendbar .hint{font-size:11.5px;color:var(--muted);flex:1 1 160px}
   .rrow{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
   .rrow:last-child{border-bottom:none}
   .rrow .when{font-size:12.5px;font-variant-numeric:tabular-nums;color:var(--muted);flex:none;min-width:48px}
@@ -369,8 +380,13 @@
       <span id="remindDate">—</span>
       <span class="count" id="remindCount">—</span>
     </header>
+    <div class="sendbar">
+      <button type="button" class="sendall" id="sendAllBtn">ارسال یادآوری‌ها</button>
+      <span class="hint" id="sendHint">—</span>
+      <button type="button" class="wabtn plain" id="resetSent" hidden>برداشتن نشانه‌ها</button>
+    </div>
     <div id="remindList"></div>
-    <footer>متن پیام آماده است؛ با زدن دکمهٔ واتس‌اپ، گفتگوی همان مشتری با پیام نوشته‌شده باز می‌شود و شما فقط ارسال را می‌زنید.</footer>
+    <footer>با هر بار زدن دکمه، گفتگوی مشتری بعدی با پیام آمادهٔ یادآوری باز می‌شود؛ شما فقط دکمهٔ ارسال واتس‌اپ را می‌زنید و به همین صفحه برمی‌گردید.</footer>
   </section>
 
   <details class="tariff">
@@ -380,15 +396,36 @@
 
   <section class="access">
     <div class="col">
-      <h2>نوبت‌ها کجا ذخیره می‌شوند؟</h2>
-      <p class="lead">روی همین دستگاه، در حافظهٔ مرورگر. نه حسابی لازم دارد نه اینترنتی — ولی بین گوشی و لپ‌تاپ همگام نمی‌شود. برای جابه‌جایی یا نسخهٔ پشتیبان از این دو دکمه استفاده کنید.</p>
+      <h2>دفترچهٔ مشتریان</h2>
+      <p class="lead" id="custCount">—</p>
       <div class="linkrow">
-        <button type="button" id="exportBtn">گرفتن پشتیبان</button>
+        <button type="button" id="pickContacts" hidden>همگام‌سازی مخاطبین</button>
+        <button type="button" id="vcfBtn">افزودن از فایل مخاطبین</button>
+        <span id="syncInfo"></span>
+      </div>
+      <input type="file" id="vcfFile" accept=".vcf,text/vcard,text/x-vcard" multiple hidden>
+      <p class="tip"><b>همگام‌سازی:</b> هر بار که مخاطب تازه‌ای در گوشی ذخیره شد، همین دکمه را بزنید و در پنجرهٔ مخاطبین «انتخاب همه» کنید — تکراری‌ها دوباره ساخته نمی‌شوند و فقط تازه‌ها اضافه می‌شوند. این دکمه روی اندروید با Chrome کار می‌کند؛ اپل اجازهٔ خواندن مخاطبین از صفحهٔ وب را نمی‌دهد، پس روی آیفون در برنامهٔ Contacts همه را انتخاب و Share ← Save to Files کنید و فایل را از دکمهٔ کناری بدهید.</p>
+    </div>
+  </section>
+
+  <section class="access">
+    <div class="col">
+      <h2>پشتیبان و بازیابی</h2>
+      <p class="lead" id="storeInfo">—</p>
+      <div class="linkrow">
+        <button type="button" id="exportBtn">گرفتن فایل پشتیبان</button>
         <button type="button" id="importBtn">بازیابی از فایل</button>
-        <span id="storeInfo"></span>
       </div>
       <input type="file" id="importFile" accept="application/json,.json" hidden>
-      <p class="tip"><b>یادتان باشد:</b> اگر داده‌های سایت را در مرورگر پاک کنید، نوبت‌ها هم پاک می‌شوند. هفته‌ای یک‌بار پشتیبان بگیرید و فایلش را برای خودتان در واتس‌اپ بفرستید تا همیشه یک نسخه جای امن باشد.</p>
+      <p class="tip">فایل پشتیبان همهٔ نوبت‌ها، مشتری‌ها و تعرفه را در یک فایل کوچک نگه می‌دارد. هفته‌ای یک‌بار بگیرید و برای خودتان در واتس‌اپ بفرستید؛ اگر روزی گوشی یا مرورگر عوض شد، با «بازیابی از فایل» همه‌چیز برمی‌گردد.</p>
+    </div>
+  </section>
+
+  <section class="access">
+    <div class="col">
+      <h2>این نسخه کجا ذخیره می‌کند؟</h2>
+      <p class="lead">نوبت‌ها، مشتری‌ها و تعرفه در حافظهٔ همین مرورگر می‌مانند: نه حسابی لازم دارد نه اینترنتی، ولی بین گوشی و لپ‌تاپ همگام نمی‌شود. برای بردن اطلاعات از یک دستگاه به دستگاه دیگر، از همین «گرفتن فایل پشتیبان» و «بازیابی از فایل» بالا استفاده کنید.</p>
+      <p class="tip"><b>مهم:</b> اگر داده‌های سایت را در تنظیمات مرورگر پاک کنید، این اطلاعات هم پاک می‌شوند. هفته‌ای یک‌بار پشتیبان بگیرید.</p>
     </div>
   </section>
 
@@ -859,6 +896,131 @@
       if (c && c.name) { c.id = id; next[id] = c; }
     });
     state.customers = next;
+    updateCustCount();
+  }
+
+  function updateCustCount() {
+    var el = $("custCount");
+    if (!el) return;
+    var list = customerList();
+    var withPhone = list.filter(function (c) { return phoneDigits(c.phone); }).length;
+    el.textContent = list.length
+      ? fa(list.length) + " مشتری ذخیره شده — " + fa(withPhone) + " نفر با شمارهٔ تماس. هنگام ثبت نوبت، با تایپ دو حرف از نام، شماره‌شان پیشنهاد می‌شود."
+      : "هنوز مشتری‌ای ذخیره نشده. هر نوبتی که ثبت کنید، نام و شماره‌اش همین‌جا می‌ماند — یا مخاطبین گوشی را یک‌جا بیاورید.";
+    var info = $("syncInfo");
+    if (!info) return;
+    var last = list.length ? String(list[0].updatedAt || "") : "";
+    if (!last) { info.textContent = ""; return; }
+    var days = Math.floor((Date.now() - new Date(last).getTime()) / 86400000);
+    info.textContent = "آخرین افزودن: " +
+      (isFinite(days) ? (days <= 0 ? "امروز" : days === 1 ? "دیروز" : fa(days) + " روز پیش") : "—");
+  }
+
+  /* ---------- importing the phone's contacts ---------- */
+  function addCustomers(list) {
+    var added = 0, updated = 0, skipped = 0;
+    list.forEach(function (c) {
+      var name = String(c.name || "").trim();
+      var phone = String(c.phone || "").trim();
+      if (!name && !phone) { skipped++; return; }
+      if (!name) name = phone;
+      var id = custKey(name, phone);
+      var before = state.customers[id];
+      if (before && before.name === name && phoneDigits(before.phone) === phoneDigits(phone)) {
+        skipped++;
+        return;
+      }
+      if (before) updated++; else added++;
+      rememberCustomer(name, phone, (before && before.lang) || detectLang(name));
+    });
+    updateCustCount();
+    if (!added && !updated) { toast(skipped ? "همه از قبل در دفترچه بودند." : "مخاطبی انتخاب نشد."); return; }
+    toast(fa(added) + " مخاطب تازه" + (updated ? " · " + fa(updated) + " به‌روز شد" : "") +
+          (skipped ? " · " + fa(skipped) + " تکراری" : ""));
+  }
+
+  /* ---------- backup ---------- */
+  function doExport() {
+    Promise.resolve(adapter.exportAll()).then(function (data) {
+      var payload = {
+        app: "infinia-noubat", version: 3, savedAt: new Date().toISOString(),
+        prices: data.prices || {}, customers: data.customers || {}, bookings: data.bookings || {}
+      };
+      adapter.saveFile("infinia-backup-" + keyOf(new Date()) + ".json", JSON.stringify(payload, null, 2));
+    }, function () { toast("پشتیبان گرفته نشد؛ دوباره تلاش کنید."); });
+  }
+
+  function doImport(file) {
+    if (!file) return;
+    var r = new FileReader();
+    r.onload = function () {
+      var parsed;
+      try { parsed = JSON.parse(String(r.result)); } catch (e) { parsed = null; }
+      if (!parsed || (!parsed.bookings && !parsed.customers)) {
+        toast("فایل خوانده نشد؛ فایل پشتیبانِ درست را انتخاب کنید.");
+        return;
+      }
+      toast("در حال بازیابی…");
+      Promise.resolve(adapter.importAll(parsed)).then(function () {
+        if (parsed.prices) onPrices(parsed.prices);
+        toast("بازیابی انجام شد.");
+      }, function () { toast("بازیابی کامل نشد؛ دوباره تلاش کنید."); });
+    };
+    r.onerror = function () { toast("فایل خوانده نشد."); };
+    r.readAsText(file);
+  }
+
+  function pickFromContacts() {
+    if (!(navigator.contacts && navigator.contacts.select)) return;
+    navigator.contacts.select(["name", "tel"], { multiple: true }).then(function (sel) {
+      addCustomers((sel || []).map(function (c) {
+        return {
+          name: (c.name && c.name[0]) || "",
+          phone: (c.tel && c.tel[0]) || ""
+        };
+      }));
+    }, function () { toast("دسترسی به مخاطبین انجام نشد."); });
+  }
+
+  /* A vCard file is how every phone, iPhone included, hands out contacts. */
+  function parseVcf(text) {
+    var out = [], cur = null;
+    var lines = String(text).replace(/\r\n[ \t]/g, "").replace(/\n[ \t]/g, "").replace(/\r/g, "").split("\n");
+    lines.forEach(function (line) {
+      var up = line.toUpperCase();
+      if (up.indexOf("BEGIN:VCARD") === 0) { cur = { name: "", phone: "" }; return; }
+      if (up.indexOf("END:VCARD") === 0) {
+        if (cur && (cur.name || cur.phone)) out.push(cur);
+        cur = null;
+        return;
+      }
+      if (!cur) return;
+      var at = line.indexOf(":");
+      if (at < 0) return;
+      var val = line.slice(at + 1).replace(/\\,/g, ",").replace(/\\;/g, ";").trim();
+      if (up.indexOf("FN") === 0) cur.name = val;
+      else if (up.indexOf("N:") === 0 || up.indexOf("N;") === 0) {
+        if (!cur.name) {
+          var parts = val.split(";");
+          cur.name = ((parts[1] || "") + " " + (parts[0] || "")).trim();
+        }
+      } else if (up.indexOf("TEL") === 0 && !cur.phone) cur.phone = val;
+    });
+    return out;
+  }
+
+  function importVcfFiles(files) {
+    var list = [], left = files.length;
+    if (!left) return;
+    Array.prototype.forEach.call(files, function (f) {
+      var r = new FileReader();
+      r.onload = function () {
+        try { list = list.concat(parseVcf(String(r.result))); } catch (e) {}
+        if (--left === 0) addCustomers(list);
+      };
+      r.onerror = function () { if (--left === 0) addCustomers(list); };
+      r.readAsText(f);
+    });
   }
 
   /* ---------- tomorrow's WhatsApp reminders ---------- */
@@ -905,6 +1067,7 @@
     host.textContent = "";
     if (!rows.length) {
       host.innerHTML = '<p class="rempty">فردا هنوز نوبتی ثبت نشده است.</p>';
+      updateSendBar();
       return;
     }
     rows.forEach(function (bk) {
@@ -927,9 +1090,78 @@
         (bk.remindedAt ? "لغو نشانه" : "فرستادم") + "</button></span>";
       host.appendChild(row);
     });
+    updateSendBar();
   }
 
   function onReminders(map) { state.reminders = map; renderReminders(); }
+
+  /* The send queue: browsers only open one tab per click, so the button walks
+     the list one customer at a time instead of pretending to send them all. */
+  function reminderRows() {
+    return Object.keys(state.reminders)
+      .map(function (k) { var r = state.reminders[k]; r.__id = k; return r; })
+      .sort(function (a, b) { return a.slot < b.slot ? -1 : (a.slot > b.slot ? 1 : 0); });
+  }
+
+  function pendingReminders() {
+    return reminderRows().filter(function (r) { return !r.remindedAt && waNumber(r.phone); });
+  }
+
+  function updateSendBar() {
+    var rows = reminderRows();
+    var pend = pendingReminders();
+    var noPhone = rows.filter(function (r) { return !r.remindedAt && !waNumber(r.phone); }).length;
+    var sent = rows.filter(function (r) { return r.remindedAt; }).length;
+    var btn = $("sendAllBtn"), hint = $("sendHint");
+
+    $("resetSent").hidden = sent === 0;
+
+    if (!rows.length) {
+      btn.disabled = true;
+      btn.textContent = "ارسال یادآوری‌ها";
+      hint.textContent = "برای فردا نوبتی ثبت نشده است.";
+      return;
+    }
+    if (!pend.length) {
+      btn.disabled = true;
+      btn.textContent = sent ? "همه فرستاده شد ✓" : "ارسال یادآوری‌ها";
+      hint.textContent = noPhone
+        ? fa(sent) + " پیام فرستاده شد · " + fa(noPhone) + " مشتری شمارهٔ ثبت‌شده ندارد"
+        : fa(sent) + " پیام فرستاده شد.";
+      return;
+    }
+    var next = pend[0];
+    var done = rows.length - pend.length - noPhone;
+    btn.disabled = !state.canWrite;
+    btn.textContent = "ارسال یادآوری به " + next.name;
+    hint.textContent = "نفر " + fa(done + 1) + " از " + fa(done + pend.length) +
+      " · ساعت " + slotLabel(next.slot) +
+      (noPhone ? " · " + fa(noPhone) + " نفر بدون شماره" : "");
+  }
+
+  function sendNextReminder() {
+    var pend = pendingReminders();
+    if (!pend.length) return;
+    var bk = pend[0];
+    var url = "https://wa.me/" + waNumber(bk.phone) + "?text=" + encodeURIComponent(reminderText(bk));
+    /* No "noopener" here: Chrome returns null for it, and the null is how we
+       detect a blocked popup. The opener is cleared right after instead. */
+    var win = window.open(url, "_blank");
+    if (win) { try { win.opener = null; } catch (e) {} }
+    if (!win) {
+      copyText(reminderText(bk));
+      toast("واتس‌اپ باز نشد؛ متن کپی شد — دکمهٔ سبز همان ردیف را بزنید.");
+      return;
+    }
+    markReminded(bk.__id, true);
+  }
+
+  function resetReminded() {
+    reminderRows().forEach(function (r) {
+      if (r.remindedAt) markReminded(r.__id, false);
+    });
+    toast("نشانه‌ها برداشته شد.");
+  }
 
   function copyText(text) {
     var ta = document.createElement("textarea");
@@ -1122,12 +1354,15 @@
     },
     readAll: function () { return adapter.readJSON(BOOK_KEY, {}); },
     writeAll: function (all) { return adapter.writeJSON(BOOK_KEY, all); },
-    count: function () {
+
+    stats: function () {
       var el = $("storeInfo");
       if (!el) return;
-      var n = Object.keys(adapter.readAll()).length;
-      el.textContent = n ? "مجموع " + fa(n) + " نوبت ذخیره‌شده" : "هنوز نوبتی ذخیره نشده";
+      var nb = Object.keys(adapter.readAll()).length;
+      var nc = Object.keys(adapter.readJSON(CUST_KEY, {})).length;
+      el.textContent = fa(nb) + " نوبت و " + fa(nc) + " مشتری روی همین دستگاه ذخیره شده است.";
     },
+
     refreshReminders: function () {
       var all = adapter.readAll(), map = {};
       Object.keys(all).forEach(function (id) {
@@ -1145,7 +1380,7 @@
       onCustomers(adapter.readJSON(CUST_KEY, {}));
       adapter.watchDate(state.dateKey);
       adapter.refreshReminders();
-      adapter.count();
+      adapter.stats();
     },
 
     watchDate: function (k) {
@@ -1160,7 +1395,7 @@
       var all = adapter.readAll();
       all[id] = rec;
       var ok = adapter.writeAll(all);
-      adapter.count();
+      adapter.stats();
       adapter.refreshReminders();
       if (!quiet) toast(ok ? (wasNew ? "نوبت ثبت شد." : "تغییرات ذخیره شد.") : "ذخیره نشد — حافظهٔ مرورگر در دسترس نیست.");
     },
@@ -1169,7 +1404,7 @@
       var all = adapter.readAll();
       delete all[id];
       var ok = adapter.writeAll(all);
-      adapter.count();
+      adapter.stats();
       adapter.refreshReminders();
       toast(ok ? "نوبت لغو شد." : "لغو ذخیره نشد — حافظهٔ مرورگر در دسترس نیست.");
     },
@@ -1180,57 +1415,50 @@
       var all = adapter.readJSON(CUST_KEY, {});
       all[id] = rec;
       adapter.writeJSON(CUST_KEY, all);
+      adapter.stats();
     },
 
-    setupSection: function () {
-      $("exportBtn").addEventListener("click", function () {
-        var payload = {
-          app: "infinia-noubat", version: 2, savedAt: new Date().toISOString(),
-          prices: PRICES, customers: adapter.readJSON(CUST_KEY, {}), bookings: adapter.readAll()
-        };
-        var blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    exportAll: function () {
+      return Promise.resolve({
+        bookings: adapter.readAll(),
+        customers: adapter.readJSON(CUST_KEY, {}),
+        prices: PRICES
+      });
+    },
+
+    importAll: function (data) {
+      var all = adapter.readAll();
+      Object.keys(data.bookings || {}).forEach(function (k) {
+        if (data.bookings[k] && data.bookings[k].date) all[k] = data.bookings[k];
+      });
+      adapter.writeAll(all);
+      var cust = adapter.readJSON(CUST_KEY, {});
+      Object.keys(data.customers || {}).forEach(function (k) {
+        if (data.customers[k] && data.customers[k].name) cust[k] = data.customers[k];
+      });
+      adapter.writeJSON(CUST_KEY, cust);
+      if (data.prices) adapter.writeJSON(PRICE_KEY, data.prices);
+      onCustomers(cust);
+      adapter.watchDate(state.dateKey);
+      adapter.refreshReminders();
+      adapter.stats();
+      return Promise.resolve(true);
+    },
+
+    saveFile: function (filename, text) {
+      try {
+        var blob = new Blob([text], { type: "application/json" });
         var a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
-        a.download = "infinia-noubat-" + keyOf(new Date()) + ".json";
+        a.download = filename;
         document.body.appendChild(a);
         a.click();
         setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
         toast("فایل پشتیبان ساخته شد.");
-      });
-      $("importBtn").addEventListener("click", function () { $("importFile").click(); });
-      $("importFile").addEventListener("change", function (e) {
-        var f = e.target.files && e.target.files[0];
-        if (!f) return;
-        var r = new FileReader();
-        r.onload = function () {
-          try {
-            var parsed = JSON.parse(String(r.result));
-            var incoming = parsed && parsed.bookings ? parsed.bookings : parsed;
-            if (!incoming || typeof incoming !== "object") throw new Error("bad file");
-            var all = adapter.readAll(), n = 0;
-            Object.keys(incoming).forEach(function (k) {
-              if (incoming[k] && incoming[k].date) { all[k] = incoming[k]; n++; }
-            });
-            adapter.writeAll(all);
-            if (parsed && parsed.prices) { onPrices(parsed.prices); adapter.savePrices(); }
-            if (parsed && parsed.customers) {
-              var cust = adapter.readJSON(CUST_KEY, {});
-              Object.keys(parsed.customers).forEach(function (k) { cust[k] = parsed.customers[k]; });
-              adapter.writeJSON(CUST_KEY, cust);
-              onCustomers(cust);
-            }
-            adapter.watchDate(state.dateKey);
-            adapter.refreshReminders();
-            adapter.count();
-            toast(fa(n) + " نوبت بازیابی شد.");
-          } catch (err) {
-            toast("فایل خوانده نشد؛ فایل پشتیبانِ درست را انتخاب کنید.");
-          }
-        };
-        r.readAsText(f);
-        e.target.value = "";
-      });
-    }
+      } catch (e) { toast("ذخیرهٔ فایل انجام نشد."); }
+    },
+
+    setupSection: function () {}
   };
   /* ===== ADAPTER-END ===== */
 
@@ -1290,6 +1518,23 @@
         setLang(e.currentTarget.dataset.lang);
       });
     });
+    if (navigator.contacts && navigator.contacts.select) {
+      $("pickContacts").hidden = false;
+      $("pickContacts").addEventListener("click", pickFromContacts);
+    }
+    $("vcfBtn").addEventListener("click", function () { $("vcfFile").click(); });
+    $("vcfFile").addEventListener("change", function (e) {
+      importVcfFiles(e.target.files || []);
+      e.target.value = "";
+    });
+    $("exportBtn").addEventListener("click", doExport);
+    $("importBtn").addEventListener("click", function () { $("importFile").click(); });
+    $("importFile").addEventListener("change", function (e) {
+      doImport(e.target.files && e.target.files[0]);
+      e.target.value = "";
+    });
+    $("sendAllBtn").addEventListener("click", sendNextReminder);
+    $("resetSent").addEventListener("click", resetReminded);
     $("remindList").addEventListener("click", function (e) {
       var t = e.target;
       if (!t || !t.dataset) return;
@@ -1327,6 +1572,8 @@
   var okTariff = step(renderTariff, "tariff");
   var okRender = step(renderAll, "render");
   step(renderReminders, "reminders");
+  step(updateCustCount, "customers");
+  step(function () { adapter.stats(); }, "stats");
   if (!(okWire && okTariff && okRender)) {
     $("board").innerHTML = '<p style="grid-column:1/-1;padding:16px;text-align:center;color:var(--danger)">' +
       "صفحه درست بارگذاری نشد. یک‌بار صفحه را تازه کنید." + "</p>";
