@@ -387,55 +387,122 @@
   ];
   var SPECIALISTS = [
     { id: "bahar",  name: "بهار جون",  initial: "ب", role: "خدمات دست",
-      groups: ["hand"], color: "var(--berry)", soft: "var(--berry-soft)" },
+      groups: ["hand_care", "hand_nail", "hand_remove", "design"],
+      color: "var(--berry)", soft: "var(--berry-soft)" },
     { id: "shirin", name: "شیرین جون", initial: "ش", role: "خدمات دست و پا",
-      groups: ["hand", "foot"], color: "var(--teal)", soft: "var(--teal-soft)" },
+      groups: ["hand_care", "hand_nail", "hand_remove", "design", "foot"],
+      color: "var(--teal)", soft: "var(--teal-soft)" },
     { id: "mahsa",  name: "مهسا جون",  initial: "م", role: "لیزر",
-      groups: ["laser"], color: "var(--violet)", soft: "var(--violet-soft)" },
+      groups: ["laser_w", "laser_m"],
+      color: "var(--violet)", soft: "var(--violet-soft)" },
     { id: "sahar",  name: "سحر جون",   initial: "س", role: "خدمات مژه",
-      groups: ["lash"], color: "var(--amber)", soft: "var(--amber-soft)" },
-    { id: "razieh", name: "راضیه جون", initial: "ر", role: "خدمات ابرو",
-      groups: ["brow"], color: "var(--blue)", soft: "var(--blue-soft)" }
+      groups: ["lash"],
+      color: "var(--amber)", soft: "var(--amber-soft)" },
+    { id: "razieh", name: "راضیه جون", initial: "ر", role: "ابرو و آرایش دائم",
+      groups: ["brow"],
+      color: "var(--blue)", soft: "var(--blue-soft)" }
   ];
   var GROUPS = [
-    { id: "hand", name: "خدمات دست", by: "بهار جون، شیرین جون", items: [
-      { id: "h_mani",  name: "مانیکور",              price: 600 },
-      { id: "h_lam",   name: "ترمیم لمینت",          price: 900 },
-      { id: "h_gel",   name: "ترمیم ژل",             price: 800 },
-      { id: "h_poly",  name: "ترمیم پلی ژل",         price: 900 },
-      { id: "h_nail",  name: "کاشت ناخن (پروتز)",    price: 1500 },
-      { id: "h_remo",  name: "ریمو",                 price: 300 },
-      { id: "h_para",  name: "پارافین تراپی",        price: 500 }
+    { id: "hand_care", name: "مانیکور و مراقبت دست", by: "بهار جون، شیرین جون", items: [
+      { id: "hc_dry",   name: "مانیکور خشک",            price: 800 },
+      { id: "hc_spa",   name: "اسپا مانیکور",           price: 1000 },
+      { id: "hc_para",  name: "پارافین تراپی دست",      price: 1200 }
+    ]},
+    { id: "hand_nail", name: "ناخن دست", by: "بهار جون، شیرین جون", items: [
+      { id: "hn_gelish",  name: "ژلیش دست",                   price: 1100 },
+      { id: "hn_lam",     name: "لمینت و ژلیش دست",           price: 1400 },
+      { id: "hn_gelfix",  name: "ترمیم ژل",                   price: 1500 },
+      { id: "hn_polyfix", name: "ترمیم پلی ژل",               price: 1800 },
+      { id: "hn_protez",  name: "کاشت ناخن ژل (از … به بالا)", price: 2000 },
+      { id: "hn_former",  name: "کاشت ناخن فرمر (از … به بالا)", price: 2200 },
+      { id: "hn_single",  name: "کاشت تک ناخن دست",           price: 150 }
+    ]},
+    { id: "hand_remove", name: "برداشت — دست", by: "بهار جون، شیرین جون", items: [
+      { id: "hr_gelish", name: "برداشت ژلیش دست",  price: 300 },
+      { id: "hr_lam",    name: "برداشت لمینت",     price: 400 },
+      { id: "hr_protez", name: "برداشت کاشت",      price: 500 }
+    ]},
+    { id: "design", name: "طراحی ناخن", by: "بهار جون، شیرین جون", items: [
+      { id: "dg_each",    name: "طراحی هر ناخن (از … به بالا)", price: 50 },
+      { id: "dg_french",  name: "فرنچ",                price: 300 },
+      { id: "dg_cfrench", name: "فرنچ رنگی",           price: 400 },
+      { id: "dg_ombre",   name: "آمبره",               price: 200 },
+      { id: "dg_chrome",  name: "پودر کروم",           price: 200 },
+      { id: "dg_flex",    name: "فلکسی ژل",            price: 100 },
+      { id: "dg_disco",   name: "دیسکو ژل",            price: 100 },
+      { id: "dg_snow",    name: "لاک ژل برفکی",        price: 100 },
+      { id: "dg_magnet",  name: "لاک ژل آهنربایی",     price: 100 }
     ]},
     { id: "foot", name: "خدمات پا", by: "شیرین جون", items: [
-      { id: "f_dry",   name: "ژلیش پا (پدیکور خشک)",           price: 800 },
-      { id: "f_spa",   name: "ژلیش پا (پدیکور اسپا)",          price: 1100 },
-      { id: "f_lux",   name: "ژلیش پا (پدیکور لوکس، ژله‌ای)",  price: 1400 },
-      { id: "f_milk",  name: "ژلیش پا (پدیکور شیر و عسل)",     price: 1300 }
+      { id: "ft_dry",    name: "پدیکور خشک",                price: 900 },
+      { id: "ft_spa",    name: "اسپا پدیکور",               price: 1500 },
+      { id: "ft_lux",    name: "پدیکور لوکس",               price: 1600 },
+      { id: "ft_milk",   name: "پدیکور شیر و عسل",          price: 1800 },
+      { id: "ft_para",   name: "پارافین تراپی پا (افزودنی)", price: 400 },
+      { id: "ft_gelish", name: "ژلیش پا",                   price: 1200 },
+      { id: "ft_single", name: "کاشت تک ناخن پا",           price: 250 },
+      { id: "ft_remove", name: "برداشت ژلیش پا",            price: 300 }
     ]},
-    { id: "laser", name: "لیزر", by: "مهسا جون", items: [
-      { id: "l_full",  name: "لیزر کامل بدن",        price: 3500 },
-      { id: "l_face",  name: "لیزر صورت",            price: 900 },
-      { id: "l_under", name: "لیزر زیربغل",          price: 500 },
-      { id: "l_bikini",name: "لیزر بیکینی",          price: 900 },
-      { id: "l_legs",  name: "لیزر ساق پا",          price: 1200 },
-      { id: "l_arms",  name: "لیزر دست و بازو",      price: 900 }
+    { id: "laser_w", name: "لیزر — بانوان", by: "مهسا جون", items: [
+      { id: "lw_lip",       name: "پشت لب",            price: 300 },
+      { id: "lw_faul",      name: "خط ریش (فاول)",     price: 300 },
+      { id: "lw_face",      name: "صورت",              price: 800 },
+      { id: "lw_chin",      name: "چانه",              price: 300 },
+      { id: "lw_neck",      name: "گردن",              price: 350 },
+      { id: "lw_faceneck",  name: "صورت و گردن",       price: 950 },
+      { id: "lw_chest",     name: "سینه",              price: 650 },
+      { id: "lw_belly",     name: "شکم",               price: 700 },
+      { id: "lw_bline",     name: "خط شکم",            price: 400 },
+      { id: "lw_under",     name: "زیربغل",            price: 650 },
+      { id: "lw_fullarm",   name: "کل دست",            price: 950 },
+      { id: "lw_halfarm",   name: "نیم دست",           price: 700 },
+      { id: "lw_fullleg",   name: "کل پا",             price: 1400 },
+      { id: "lw_halfleg",   name: "نیم پا",            price: 950 },
+      { id: "lw_bikini",    name: "بیکینی",            price: 1050 },
+      { id: "lw_waist",     name: "کمر",               price: 650 },
+      { id: "lw_back",      name: "پشت",               price: 900 },
+      { id: "lw_hip",       name: "باسن",              price: 800 },
+      { id: "lw_fingers",   name: "روی انگشتان",       price: 350 },
+      { id: "lw_body",      name: "کل بدن",            price: 3600 },
+      { id: "lw_all",       name: "سر تا پا",          price: 5100 },
+      { id: "lw_l_under",   name: "روشن‌سازی زیربغل",  price: 1000 },
+      { id: "lw_l_knee",    name: "روشن‌سازی زانو",    price: 1000 },
+      { id: "lw_l_elbow",   name: "روشن‌سازی آرنج",    price: 1000 },
+      { id: "lw_l_pack",    name: "پکیج روشن‌سازی (زیربغل، زانو، آرنج)", price: 2500 }
+    ]},
+    { id: "laser_m", name: "لیزر — آقایان", by: "مهسا جون", items: [
+      { id: "lm_neck",     name: "گردن",        price: 500 },
+      { id: "lm_cheek",    name: "گونه",        price: 400 },
+      { id: "lm_belly",    name: "شکم",         price: 900 },
+      { id: "lm_arm",      name: "کل دست",      price: 1200 },
+      { id: "lm_under",    name: "زیربغل",      price: 800 },
+      { id: "lm_leg",      name: "کل پا",       price: 2000 },
+      { id: "lm_waist",    name: "کمر",         price: 800 },
+      { id: "lm_back",     name: "پشت",         price: 1100 },
+      { id: "lm_upper",    name: "بالاتنه",     price: 1100 },
+      { id: "lm_shoulder", name: "شانه",        price: 800 },
+      { id: "lm_nape",     name: "پشت گردن",    price: 500 },
+      { id: "lm_body",     name: "کل بدن",      price: 5900 }
     ]},
     { id: "lash", name: "خدمات مژه", by: "سحر جون", items: [
-      { id: "m_class", name: "اکستنشن کلاسیک",       price: 1500 },
-      { id: "m_vol",   name: "اکستنشن حجمی (ولوم)",  price: 2200 },
-      { id: "m_fix",   name: "ترمیم مژه",            price: 800 },
-      { id: "m_lift",  name: "لیفت مژه",             price: 1200 },
-      { id: "m_lam",   name: "لمینت مژه",            price: 1300 },
-      { id: "m_remo",  name: "ریمو مژه",             price: 400 }
+      { id: "ls_classic",    name: "کلاسیک طبیعی",              price: 2000 },
+      { id: "ls_classicfix", name: "ترمیم کلاسیک",              price: 1800 },
+      { id: "ls_spiky",      name: "اسپایکی",                   price: 2200 },
+      { id: "ls_spikyfix",   name: "ترمیم اسپایکی",             price: 1900 },
+      { id: "ls_volume",     name: "والیوم",                    price: 2500 },
+      { id: "ls_volumefix",  name: "ترمیم والیوم",              price: 2100 },
+      { id: "ls_super",      name: "سوپر والیوم",               price: 3000 },
+      { id: "ls_lift",       name: "لیفت مژه",                  price: 1700 },
+      { id: "ls_remove",     name: "ریمو مژه",                  price: 400 },
+      { id: "ls_color",      name: "L+ / M+ / قهوه‌ای (افزودنی)", price: 300 }
     ]},
-    { id: "brow", name: "خدمات ابرو", by: "راضیه جون", items: [
-      { id: "b_shape", name: "اصلاح و فرم ابرو",     price: 300 },
-      { id: "b_color", name: "رنگ ابرو",             price: 400 },
-      { id: "b_lam",   name: "لمینت ابرو",           price: 1000 },
-      { id: "b_lift",  name: "لیفت ابرو",            price: 1000 },
-      { id: "b_micro", name: "هاشور و میکروبلیدینگ", price: 4500 },
-      { id: "b_ombre", name: "آمبره ابرو",           price: 5000 }
+    { id: "brow", name: "ابرو و آرایش دائم", by: "راضیه جون", items: [
+      { id: "bw_shape",  name: "اصلاح و فرم‌دهی ابرو",     price: 500 },
+      { id: "bw_lift",   name: "لیفت ابرو",                price: 1700 },
+      { id: "bw_micro",  name: "میکروبلیدینگ",             price: 7500 },
+      { id: "bw_lip",    name: "رنگ دائم لب (شیدینگ)",     price: 7000 },
+      { id: "bw_thread", name: "اصلاح پشت لب (با نخ)",     price: 300 },
+      { id: "bw_face",   name: "اصلاح کامل صورت (با نخ)",  price: 1000 }
     ]}
   ];
   var SVC_BY_ID = {}, PRICES = {};
