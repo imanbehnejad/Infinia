@@ -211,6 +211,58 @@
   .tip{margin:12px 0 0;font-size:11.5px;color:var(--muted);border-top:1px dotted var(--line);padding-top:10px}
   .tip b{color:var(--ink);font-weight:600}
 
+  /* ---------- customer suggestions ---------- */
+  .field.rel{position:relative}
+  .suggest{
+    position:absolute;top:100%;inset-inline:0;z-index:5;margin-top:4px;
+    background:var(--surface);border:1px solid var(--line);border-radius:12px;
+    box-shadow:var(--shadow);max-height:210px;overflow-y:auto;padding:4px;
+  }
+  .sugg{
+    display:flex;align-items:center;gap:8px;width:100%;padding:7px 9px;border-radius:9px;
+    border:none;background:transparent;cursor:pointer;font-family:inherit;font-size:13px;
+    color:var(--ink);text-align:start;
+  }
+  .sugg:hover,.sugg:focus-visible{background:var(--surface-2)}
+  .sugg b{font-weight:600}
+  .sugg span{margin-inline-start:auto;font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums;direction:ltr}
+  .sugg i{font-style:normal;font-size:10px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:0 6px}
+
+  .langrow{display:flex;gap:6px;align-items:center}
+  .langbtn{
+    font-family:inherit;font-size:12.5px;padding:5px 14px;border-radius:999px;cursor:pointer;
+    border:1px solid var(--line);background:var(--bg);color:var(--ink);
+  }
+  .langbtn[aria-pressed="true"]{background:var(--berry);border-color:var(--berry);color:#fff}
+
+  /* ---------- reminders ---------- */
+  .remind{margin-top:26px;border:1px solid var(--line);border-radius:16px;background:var(--surface);box-shadow:var(--shadow);overflow:hidden}
+  .remind header{padding:13px 16px;border-bottom:1px solid var(--line);display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+  .remind h2{margin:0;font-size:15px;font-weight:600}
+  .remind header span{font-size:11.5px;color:var(--muted)}
+  .remind header .count{
+    margin-inline-start:auto;font-size:11px;color:var(--berry);
+    background:var(--berry-soft);border-radius:999px;padding:2px 10px;
+  }
+  .rrow{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .rrow:last-child{border-bottom:none}
+  .rrow .when{font-size:12.5px;font-variant-numeric:tabular-nums;color:var(--muted);flex:none;min-width:48px}
+  .rrow .who{font-size:13.5px;font-weight:600}
+  .rrow .with{font-size:11.5px;color:var(--muted)}
+  .rrow .tag{font-size:10px;border:1px solid var(--line);border-radius:999px;padding:0 7px;color:var(--muted)}
+  .rrow .acts{margin-inline-start:auto;display:flex;gap:6px;align-items:center}
+  .wabtn{
+    font-family:inherit;font-size:12.5px;font-weight:600;text-decoration:none;
+    padding:6px 13px;border-radius:9px;background:#1E8E5A;color:#fff;border:1px solid transparent;cursor:pointer;
+  }
+  .wabtn:hover{filter:brightness(1.08)}
+  .wabtn.plain{background:var(--surface-2);color:var(--ink);border-color:var(--line)}
+  .wabtn.plain:hover{border-color:var(--berry);color:var(--berry);filter:none}
+  .rrow.sent{opacity:.6}
+  .rrow .done-mark{color:var(--ok);font-size:12px}
+  .rempty{padding:16px;font-size:12.5px;color:var(--muted);text-align:center}
+  .remind footer{padding:10px 16px;border-top:1px solid var(--line);font-size:11.5px;color:var(--muted);background:var(--surface-2)}
+
   .note{margin-top:18px;font-size:11.5px;color:var(--muted);text-align:center}
 
   .overlay{position:fixed;inset:0;z-index:40;background:rgba(30,20,25,.5);display:flex;align-items:flex-end;justify-content:center;padding:0}
@@ -311,6 +363,16 @@
   <div class="board-scroll"><div class="board" id="board"></div></div>
   <p class="scrollhint">جدول را با انگشت به چپ و راست بکشید تا همهٔ متخصص‌ها را ببینید.</p>
 
+  <section class="remind">
+    <header>
+      <h2>یادآوری واتس‌اپ برای فردا</h2>
+      <span id="remindDate">—</span>
+      <span class="count" id="remindCount">—</span>
+    </header>
+    <div id="remindList"></div>
+    <footer>متن پیام آماده است؛ با زدن دکمهٔ واتس‌اپ، گفتگوی همان مشتری با پیام نوشته‌شده باز می‌شود و شما فقط ارسال را می‌زنید.</footer>
+  </section>
+
   <details class="tariff">
     <summary>تعرفهٔ خدمات</summary>
     <div class="tariff-body" id="tariff"></div>
@@ -343,13 +405,21 @@
       <button class="x" id="closeBtn" aria-label="بستن">✕</button>
     </div>
     <div class="sheet-body">
-      <div class="field">
-        <label for="f-name">نام مشتری</label>
-        <input type="text" id="f-name" placeholder="مثلاً خانم محمدی" autocomplete="off">
+      <div class="field rel">
+        <label for="f-name">نام و نام خانوادگی مشتری</label>
+        <input type="text" id="f-name" placeholder="مثلاً مریم محمدی" autocomplete="off">
+        <div class="suggest" id="suggest" hidden></div>
       </div>
       <div class="field">
-        <label for="f-phone">شماره تماس <span style="opacity:.7">(اختیاری)</span></label>
-        <input type="tel" id="f-phone" placeholder="۰۹…" autocomplete="off" dir="ltr" style="text-align:right">
+        <label for="f-phone">شماره تماس <span style="opacity:.7">(برای یادآوری واتس‌اپ)</span></label>
+        <input type="tel" id="f-phone" placeholder="0535 871 02 36" autocomplete="off" dir="ltr" style="text-align:right">
+      </div>
+      <div class="field">
+        <label>زبان پیام یادآوری</label>
+        <div class="langrow">
+          <button type="button" class="langbtn" id="lang-fa" data-lang="fa" aria-pressed="true">فارسی</button>
+          <button type="button" class="langbtn" id="lang-tr" data-lang="tr" aria-pressed="false">Türkçe</button>
+        </div>
       </div>
       <div class="field">
         <label>خدمات سفارش‌داده‌شده</label>
@@ -386,19 +456,19 @@
     { id: "1700", label: "۱۷:۰۰" }
   ];
   var SPECIALISTS = [
-    { id: "bahar",  name: "بهار جون",  initial: "ب", role: "خدمات دست",
+    { id: "bahar",  name: "بهار جون",  tr: "Bahar",  initial: "ب", role: "خدمات دست",
       groups: ["hand_care", "hand_nail", "hand_remove", "design"],
       color: "var(--berry)", soft: "var(--berry-soft)" },
-    { id: "shirin", name: "شیرین جون", initial: "ش", role: "خدمات دست و پا",
+    { id: "shirin", name: "شیرین جون", tr: "Şirin",  initial: "ش", role: "خدمات دست و پا",
       groups: ["hand_care", "hand_nail", "hand_remove", "design", "foot"],
       color: "var(--teal)", soft: "var(--teal-soft)" },
-    { id: "mahsa",  name: "مهسا جون",  initial: "م", role: "لیزر",
+    { id: "mahsa",  name: "مهسا جون",  tr: "Mahsa",  initial: "م", role: "لیزر",
       groups: ["laser_w", "laser_m"],
       color: "var(--violet)", soft: "var(--violet-soft)" },
-    { id: "sahar",  name: "سحر جون",   initial: "س", role: "خدمات مژه",
+    { id: "sahar",  name: "سحر جون",   tr: "Sahar",  initial: "س", role: "خدمات مژه",
       groups: ["lash"],
       color: "var(--amber)", soft: "var(--amber-soft)" },
-    { id: "razieh", name: "راضیه جون", initial: "ر", role: "ابرو و آرایش دائم",
+    { id: "razieh", name: "راضیه جون", tr: "Raziye", initial: "ر", role: "ابرو و آرایش دائم",
       groups: ["brow"],
       color: "var(--blue)", soft: "var(--blue-soft)" }
   ];
@@ -554,6 +624,33 @@
   }
   var $ = function (id) { return document.getElementById(id); };
 
+  /* Persian script in the name is the tell for which language the reminder
+     should be written in; the salon can always override it by hand. */
+  function detectLang(name) { return /[؀-ۿ]/.test(String(name || "")) ? "fa" : "tr"; }
+  function phoneDigits(p) { return toLatinDigits(p || "").replace(/[^0-9]/g, ""); }
+  /* 05… is a Turkish mobile, 09… an Iranian one; both are written with a
+     leading zero locally but WhatsApp needs the country code. */
+  function waNumber(p) {
+    var d = phoneDigits(p);
+    if (!d) return "";
+    if (d.slice(0, 2) === "00") d = d.slice(2);
+    if (d.charAt(0) === "0") d = (d.charAt(1) === "9" ? "98" : "90") + d.slice(1);
+    else if (d.length === 10 && d.charAt(0) === "5") d = "90" + d;
+    return d;
+  }
+  function slotLatin(id) { return id.slice(0, 2) + ":" + id.slice(2); }
+  function slotLabel(id) {
+    var sl = SLOTS.filter(function (s) { return s.id === id; })[0];
+    return sl ? sl.label : id;
+  }
+  function custKey(name, phone) {
+    var d = phoneDigits(phone);
+    if (d) return "p" + d;
+    var s = String(name || "").trim(), h = 0, i;
+    for (i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+    return "n" + h.toString(36);
+  }
+
   /* ---------- state ---------- */
   var today = new Date(); today.setHours(0, 0, 0, 0);
   var state = {
@@ -562,8 +659,13 @@
     items: {},
     editing: null,
     picked: {},
-    canWrite: true
+    canWrite: true,
+    customers: {},
+    reminders: {},
+    lang: "fa",
+    langTouched: false
   };
+  var TOMORROW = keyOf(addDays(today, 1));
   var board;
 
   function bookingId(spec, slot) { return state.dateKey + "_" + spec + "_" + slot; }
@@ -692,6 +794,174 @@
 
   function renderAll() { renderDays(); renderHeader(); renderBoard(); }
 
+  /* ---------- customer suggestions ---------- */
+  function customerList() {
+    return Object.keys(state.customers)
+      .map(function (k) { return state.customers[k]; })
+      .filter(function (c) { return c && c.name; })
+      .sort(function (a, b) { return String(b.updatedAt || "").localeCompare(String(a.updatedAt || "")); });
+  }
+
+  function hideSuggest() { var h = $("suggest"); h.hidden = true; h.textContent = ""; }
+
+  function renderSuggest(q) {
+    var host = $("suggest");
+    q = String(q || "").trim().toLowerCase();
+    if (q.length < 2) { hideSuggest(); return; }
+    var digits = phoneDigits(q);
+    var hits = customerList().filter(function (c) {
+      return c.name.toLowerCase().indexOf(q) !== -1 ||
+             (digits.length > 2 && phoneDigits(c.phone).indexOf(digits) !== -1);
+    }).slice(0, 8);
+    if (!hits.length) { hideSuggest(); return; }
+    host.textContent = "";
+    hits.forEach(function (c) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "sugg";
+      b.dataset.cust = c.id;
+      b.innerHTML = "<b>" + esc(c.name) + "</b><i>" + (c.lang === "tr" ? "TR" : "FA") + "</i>" +
+                    "<span>" + esc(c.phone ? faDigits(c.phone) : "بدون شماره") + "</span>";
+      host.appendChild(b);
+    });
+    host.hidden = false;
+  }
+
+  function setLang(l) {
+    state.lang = l === "tr" ? "tr" : "fa";
+    $("lang-fa").setAttribute("aria-pressed", state.lang === "fa" ? "true" : "false");
+    $("lang-tr").setAttribute("aria-pressed", state.lang === "tr" ? "true" : "false");
+  }
+
+  function pickCustomer(id) {
+    var c = state.customers[id];
+    if (!c) return;
+    $("f-name").value = c.name;
+    if (c.phone) $("f-phone").value = c.phone;
+    setLang(c.lang || detectLang(c.name));
+    state.langTouched = true;
+    hideSuggest();
+    $("f-phone").focus();
+  }
+
+  function rememberCustomer(name, phone, lang) {
+    var id = custKey(name, phone);
+    var rec = { name: name, phone: phone || "", lang: lang, updatedAt: new Date().toISOString() };
+    rec.id = id;
+    state.customers[id] = rec;
+    adapter.saveCustomer(id, { name: rec.name, phone: rec.phone, lang: rec.lang, updatedAt: rec.updatedAt });
+  }
+
+  function onCustomers(map) {
+    var next = {};
+    Object.keys(map).forEach(function (id) {
+      var c = map[id];
+      if (c && c.name) { c.id = id; next[id] = c; }
+    });
+    state.customers = next;
+  }
+
+  /* ---------- tomorrow's WhatsApp reminders ---------- */
+  function reminderText(bk) {
+    var sp = specById(bk.spec);
+    var d = dateFromKey(bk.date);
+    if (bk.lang === "tr") {
+      var dt;
+      try { dt = new Intl.DateTimeFormat("tr-TR", { day: "numeric", month: "long", weekday: "long" }).format(d); }
+      catch (e) { dt = bk.date; }
+      return "Merhaba " + bk.name + " 🌸\n" +
+             "Infinia Beauty randevu hatırlatması:\n" +
+             "Yarın " + dt + ", saat " + slotLatin(bk.slot) + "\n" +
+             "Uzmanınız: " + (sp && sp.tr ? sp.tr : "") + "\n\n" +
+             "Sizi bekliyoruz. Değişiklik veya iptal için bu mesaja yazmanız yeterli.";
+    }
+    var names = (bk.services || []).map(function (id) {
+      return SVC_BY_ID[id] ? SVC_BY_ID[id].name : "";
+    }).filter(Boolean).join("، ");
+    return "سلام " + bk.name + " عزیز 🌸\n" +
+           "یادآوری نوبت شما در سالن زیبایی اینفینیا:\n" +
+           "فردا " + gFmt(d, { weekday: "long", day: "numeric", month: "long" }) +
+           " ساعت " + slotLabel(bk.slot) + "\n" +
+           "نزد " + (sp ? sp.name : "") + "\n" +
+           (names ? "خدمات: " + names + "\n" : "") + "\n" +
+           "منتظر شما هستیم. اگر نیاز به تغییر یا لغو دارید، همین پیام را پاسخ دهید.";
+  }
+
+  function renderReminders() {
+    var d = dateFromKey(TOMORROW);
+    $("remindDate").textContent = gFmt(d, { weekday: "long", day: "numeric", month: "long" }) +
+      " · " + jFmt(d, { day: "numeric", month: "long" });
+
+    var rows = Object.keys(state.reminders)
+      .map(function (k) { var r = state.reminders[k]; r.__id = k; return r; })
+      .sort(function (a, b) { return a.slot < b.slot ? -1 : (a.slot > b.slot ? 1 : 0); });
+
+    var pending = rows.filter(function (r) { return !r.remindedAt; }).length;
+    $("remindCount").textContent = rows.length
+      ? fa(rows.length) + " نوبت · " + fa(pending) + " پیام نفرستاده"
+      : "بدون نوبت";
+
+    var host = $("remindList");
+    host.textContent = "";
+    if (!rows.length) {
+      host.innerHTML = '<p class="rempty">فردا هنوز نوبتی ثبت نشده است.</p>';
+      return;
+    }
+    rows.forEach(function (bk) {
+      var sp = specById(bk.spec);
+      var wa = waNumber(bk.phone);
+      var row = document.createElement("div");
+      row.className = "rrow" + (bk.remindedAt ? " sent" : "");
+      var acts = wa
+        ? '<a class="wabtn" target="_blank" rel="noopener" href="https://wa.me/' + wa +
+          "?text=" + encodeURIComponent(reminderText(bk)) + '">واتس‌اپ</a>'
+        : '<span class="tag">شماره ثبت نشده</span>';
+      row.innerHTML =
+        '<span class="when">' + esc(slotLabel(bk.slot)) + "</span>" +
+        '<span class="who">' + (bk.remindedAt ? '<span class="done-mark">✓ </span>' : "") + esc(bk.name) + "</span>" +
+        '<span class="with">نزد ' + esc(sp ? sp.name : "") + "</span>" +
+        '<span class="tag">' + (bk.lang === "tr" ? "Türkçe" : "فارسی") + "</span>" +
+        '<span class="acts">' + acts +
+        '<button type="button" class="wabtn plain" data-copy="' + esc(bk.__id) + '">کپی متن</button>' +
+        '<button type="button" class="wabtn plain" data-sent="' + esc(bk.__id) + '">' +
+        (bk.remindedAt ? "لغو نشانه" : "فرستادم") + "</button></span>";
+      host.appendChild(row);
+    });
+  }
+
+  function onReminders(map) { state.reminders = map; renderReminders(); }
+
+  function copyText(text) {
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    var ok = false;
+    try { ok = document.execCommand("copy"); } catch (e) {}
+    ta.remove();
+    if (!ok && navigator.clipboard) {
+      navigator.clipboard.writeText(text).then(
+        function () { toast("متن پیام کپی شد."); },
+        function () { toast("کپی نشد؛ متن را دستی بردارید."); });
+      return;
+    }
+    toast(ok ? "متن پیام کپی شد." : "کپی نشد؛ متن را دستی بردارید.");
+  }
+
+  function markReminded(id, on) {
+    var bk = state.reminders[id];
+    if (!bk || !state.canWrite) return;
+    var rec = {};
+    Object.keys(bk).forEach(function (k) { if (k !== "__id") rec[k] = bk[k]; });
+    rec.remindedAt = on ? new Date().toISOString() : "";
+    state.reminders[id] = rec;
+    renderReminders();
+    adapter.saveBooking(id, rec, false, true);
+  }
+
   /* ---------- booking sheet ---------- */
   function buildServiceButtons(spec) {
     var sp = specById(spec);
@@ -748,6 +1018,9 @@
     $("f-phone").value = existing ? existing.phone || "" : "";
     $("f-note").value = existing ? existing.note || "" : "";
     $("f-done").checked = !!(existing && existing.done);
+    state.langTouched = !!(existing && existing.lang);
+    setLang(existing && existing.lang ? existing.lang : detectLang(existing ? existing.name : "fa"));
+    hideSuggest();
     $("doneWrap").hidden = !existing;
     $("deleteBtn").hidden = !existing;
     $("saveBtn").textContent = existing ? "ذخیرهٔ تغییرات" : "ثبت نوبت";
@@ -792,17 +1065,20 @@
     });
     var services = Object.keys(state.picked).filter(function (k) { return state.picked[k] && allowed[k]; });
     var amount = services.reduce(function (a, k) { return a + priceOf(k); }, 0);
+    var phone = $("f-phone").value.trim();
     var rec = {
       date: state.dateKey, slot: state.editing.slot, spec: state.editing.spec,
-      name: name, phone: $("f-phone").value.trim(),
+      name: name, phone: phone, lang: state.lang,
       services: services, amount: amount,
       note: $("f-note").value.trim(), done: $("f-done").checked,
+      remindedAt: (state.editing.existing && state.editing.existing.remindedAt) || "",
       updatedAt: new Date().toISOString()
     };
     var id = state.editing.id, wasNew = !state.editing.existing;
     closeSheet();
     applyLocal(id, rec);
     adapter.saveBooking(id, rec, wasNew);
+    rememberCustomer(name, phone, state.lang);
   }
 
   function deleteBooking() {
@@ -834,32 +1110,41 @@
 
   /* ===== ADAPTER-START ===== */
   /* Storage adapter — browser localStorage (this device only, no sign-in). */
-  var BOOK_KEY = "infinia_noubat_v1", PRICE_KEY = "infinia_prices_v1";
+  var BOOK_KEY = "infinia_noubat_v1", PRICE_KEY = "infinia_prices_v1", CUST_KEY = "infinia_customers_v1";
   var adapter = {
-    readAll: function () {
-      try { return JSON.parse(localStorage.getItem(BOOK_KEY) || "{}") || {}; }
-      catch (e) { return {}; }
+    readJSON: function (key, fallback) {
+      try { return JSON.parse(localStorage.getItem(key) || "null") || fallback; }
+      catch (e) { return fallback; }
     },
-    writeAll: function (all) {
-      try { localStorage.setItem(BOOK_KEY, JSON.stringify(all)); return true; }
+    writeJSON: function (key, val) {
+      try { localStorage.setItem(key, JSON.stringify(val)); return true; }
       catch (e) { return false; }
     },
+    readAll: function () { return adapter.readJSON(BOOK_KEY, {}); },
+    writeAll: function (all) { return adapter.writeJSON(BOOK_KEY, all); },
     count: function () {
       var el = $("storeInfo");
       if (!el) return;
       var n = Object.keys(adapter.readAll()).length;
       el.textContent = n ? "مجموع " + fa(n) + " نوبت ذخیره‌شده" : "هنوز نوبتی ذخیره نشده";
     },
+    refreshReminders: function () {
+      var all = adapter.readAll(), map = {};
+      Object.keys(all).forEach(function (id) {
+        if (all[id] && all[id].date === TOMORROW) map[id] = all[id];
+      });
+      onReminders(map);
+    },
 
     init: function () {
       var ok = false;
       try { localStorage.setItem("__infinia", "1"); localStorage.removeItem("__infinia"); ok = true; } catch (e) {}
       setStorage(ok, ok ? "ذخیره روی همین دستگاه" : "حافظهٔ مرورگر بسته است — موقتی");
-      try {
-        var p = JSON.parse(localStorage.getItem(PRICE_KEY) || "null");
-        if (p) onPrices(p);
-      } catch (e) {}
+      var p = adapter.readJSON(PRICE_KEY, null);
+      if (p) onPrices(p);
+      onCustomers(adapter.readJSON(CUST_KEY, {}));
       adapter.watchDate(state.dateKey);
+      adapter.refreshReminders();
       adapter.count();
     },
 
@@ -871,12 +1156,13 @@
       onBookings(next);
     },
 
-    saveBooking: function (id, rec, wasNew) {
+    saveBooking: function (id, rec, wasNew, quiet) {
       var all = adapter.readAll();
       all[id] = rec;
       var ok = adapter.writeAll(all);
       adapter.count();
-      toast(ok ? (wasNew ? "نوبت ثبت شد." : "تغییرات ذخیره شد.") : "ذخیره نشد — حافظهٔ مرورگر در دسترس نیست.");
+      adapter.refreshReminders();
+      if (!quiet) toast(ok ? (wasNew ? "نوبت ثبت شد." : "تغییرات ذخیره شد.") : "ذخیره نشد — حافظهٔ مرورگر در دسترس نیست.");
     },
 
     deleteBooking: function (id) {
@@ -884,18 +1170,23 @@
       delete all[id];
       var ok = adapter.writeAll(all);
       adapter.count();
+      adapter.refreshReminders();
       toast(ok ? "نوبت لغو شد." : "لغو ذخیره نشد — حافظهٔ مرورگر در دسترس نیست.");
     },
 
-    savePrices: function () {
-      try { localStorage.setItem(PRICE_KEY, JSON.stringify(PRICES)); } catch (e) {}
+    savePrices: function () { adapter.writeJSON(PRICE_KEY, PRICES); },
+
+    saveCustomer: function (id, rec) {
+      var all = adapter.readJSON(CUST_KEY, {});
+      all[id] = rec;
+      adapter.writeJSON(CUST_KEY, all);
     },
 
     setupSection: function () {
       $("exportBtn").addEventListener("click", function () {
         var payload = {
-          app: "infinia-noubat", version: 1, savedAt: new Date().toISOString(),
-          prices: PRICES, bookings: adapter.readAll()
+          app: "infinia-noubat", version: 2, savedAt: new Date().toISOString(),
+          prices: PRICES, customers: adapter.readJSON(CUST_KEY, {}), bookings: adapter.readAll()
         };
         var blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
         var a = document.createElement("a");
@@ -922,7 +1213,14 @@
             });
             adapter.writeAll(all);
             if (parsed && parsed.prices) { onPrices(parsed.prices); adapter.savePrices(); }
+            if (parsed && parsed.customers) {
+              var cust = adapter.readJSON(CUST_KEY, {});
+              Object.keys(parsed.customers).forEach(function (k) { cust[k] = parsed.customers[k]; });
+              adapter.writeJSON(CUST_KEY, cust);
+              onCustomers(cust);
+            }
             adapter.watchDate(state.dateKey);
+            adapter.refreshReminders();
             adapter.count();
             toast(fa(n) + " نوبت بازیابی شد.");
           } catch (err) {
@@ -975,6 +1273,34 @@
       adapter.savePrices();
       if (state.editing) syncServiceButtons(state.editing.spec);
     });
+    $("f-name").addEventListener("input", function (e) {
+      renderSuggest(e.target.value);
+      if (!state.langTouched) setLang(detectLang(e.target.value));
+    });
+    $("f-name").addEventListener("focus", function (e) { renderSuggest(e.target.value); });
+    $("suggest").addEventListener("mousedown", function (e) { e.preventDefault(); });
+    $("suggest").addEventListener("click", function (e) {
+      var b = e.target.closest ? e.target.closest(".sugg") : null;
+      if (b) pickCustomer(b.dataset.cust);
+    });
+    $("f-name").addEventListener("blur", function () { setTimeout(hideSuggest, 120); });
+    ["lang-fa", "lang-tr"].forEach(function (id) {
+      $(id).addEventListener("click", function (e) {
+        state.langTouched = true;
+        setLang(e.currentTarget.dataset.lang);
+      });
+    });
+    $("remindList").addEventListener("click", function (e) {
+      var t = e.target;
+      if (!t || !t.dataset) return;
+      if (t.dataset.copy) {
+        var bk = state.reminders[t.dataset.copy];
+        if (bk) copyText(reminderText(bk));
+      } else if (t.dataset.sent) {
+        var b2 = state.reminders[t.dataset.sent];
+        if (b2) markReminded(t.dataset.sent, !b2.remindedAt);
+      }
+    });
     $("saveBtn").addEventListener("click", saveBooking);
     $("deleteBtn").addEventListener("click", deleteBooking);
     $("cancelBtn").addEventListener("click", closeSheet);
@@ -1000,6 +1326,7 @@
   var okWire = step(wire, "wire");
   var okTariff = step(renderTariff, "tariff");
   var okRender = step(renderAll, "render");
+  step(renderReminders, "reminders");
   if (!(okWire && okTariff && okRender)) {
     $("board").innerHTML = '<p style="grid-column:1/-1;padding:16px;text-align:center;color:var(--danger)">' +
       "صفحه درست بارگذاری نشد. یک‌بار صفحه را تازه کنید." + "</p>";
