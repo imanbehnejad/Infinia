@@ -305,7 +305,7 @@
     <div class="stat"><b id="stCount">۰</b><span>نوبت ثبت‌شده</span></div>
     <div class="stat"><b id="stFree">۰</b><span>جای خالی</span></div>
     <div class="stat"><b id="stDone">۰</b><span>انجام‌شده</span></div>
-    <div class="stat money"><b id="stSum">۰</b><span>جمع مبلغ (تومان)</span></div>
+    <div class="stat money"><b id="stSum">۰</b><span>جمع مبلغ (لیر)</span></div>
   </div>
 
   <div class="board-scroll"><div class="board" id="board"></div></div>
@@ -399,43 +399,43 @@
   ];
   var GROUPS = [
     { id: "hand", name: "خدمات دست", by: "بهار جون، شیرین جون", items: [
-      { id: "h_mani",  name: "مانیکور",              price: 250000 },
-      { id: "h_lam",   name: "ترمیم لمینت",          price: 400000 },
-      { id: "h_gel",   name: "ترمیم ژل",             price: 350000 },
-      { id: "h_poly",  name: "ترمیم پلی ژل",         price: 400000 },
-      { id: "h_nail",  name: "کاشت ناخن (پروتز)",    price: 800000 },
-      { id: "h_remo",  name: "ریمو",                 price: 150000 },
-      { id: "h_para",  name: "پارافین تراپی",        price: 300000 }
+      { id: "h_mani",  name: "مانیکور",              price: 600 },
+      { id: "h_lam",   name: "ترمیم لمینت",          price: 900 },
+      { id: "h_gel",   name: "ترمیم ژل",             price: 800 },
+      { id: "h_poly",  name: "ترمیم پلی ژل",         price: 900 },
+      { id: "h_nail",  name: "کاشت ناخن (پروتز)",    price: 1500 },
+      { id: "h_remo",  name: "ریمو",                 price: 300 },
+      { id: "h_para",  name: "پارافین تراپی",        price: 500 }
     ]},
     { id: "foot", name: "خدمات پا", by: "شیرین جون", items: [
-      { id: "f_dry",   name: "ژلیش پا (پدیکور خشک)",           price: 450000 },
-      { id: "f_spa",   name: "ژلیش پا (پدیکور اسپا)",          price: 600000 },
-      { id: "f_lux",   name: "ژلیش پا (پدیکور لوکس، ژله‌ای)",  price: 750000 },
-      { id: "f_milk",  name: "ژلیش پا (پدیکور شیر و عسل)",     price: 700000 }
+      { id: "f_dry",   name: "ژلیش پا (پدیکور خشک)",           price: 800 },
+      { id: "f_spa",   name: "ژلیش پا (پدیکور اسپا)",          price: 1100 },
+      { id: "f_lux",   name: "ژلیش پا (پدیکور لوکس، ژله‌ای)",  price: 1400 },
+      { id: "f_milk",  name: "ژلیش پا (پدیکور شیر و عسل)",     price: 1300 }
     ]},
     { id: "laser", name: "لیزر", by: "مهسا جون", items: [
-      { id: "l_full",  name: "لیزر کامل بدن",        price: 2500000 },
-      { id: "l_face",  name: "لیزر صورت",            price: 600000 },
-      { id: "l_under", name: "لیزر زیربغل",          price: 350000 },
-      { id: "l_bikini",name: "لیزر بیکینی",          price: 700000 },
-      { id: "l_legs",  name: "لیزر ساق پا",          price: 900000 },
-      { id: "l_arms",  name: "لیزر دست و بازو",      price: 650000 }
+      { id: "l_full",  name: "لیزر کامل بدن",        price: 3500 },
+      { id: "l_face",  name: "لیزر صورت",            price: 900 },
+      { id: "l_under", name: "لیزر زیربغل",          price: 500 },
+      { id: "l_bikini",name: "لیزر بیکینی",          price: 900 },
+      { id: "l_legs",  name: "لیزر ساق پا",          price: 1200 },
+      { id: "l_arms",  name: "لیزر دست و بازو",      price: 900 }
     ]},
     { id: "lash", name: "خدمات مژه", by: "سحر جون", items: [
-      { id: "m_class", name: "اکستنشن کلاسیک",       price: 900000 },
-      { id: "m_vol",   name: "اکستنشن حجمی (ولوم)",  price: 1300000 },
-      { id: "m_fix",   name: "ترمیم مژه",            price: 450000 },
-      { id: "m_lift",  name: "لیفت مژه",             price: 700000 },
-      { id: "m_lam",   name: "لمینت مژه",            price: 750000 },
-      { id: "m_remo",  name: "ریمو مژه",             price: 200000 }
+      { id: "m_class", name: "اکستنشن کلاسیک",       price: 1500 },
+      { id: "m_vol",   name: "اکستنشن حجمی (ولوم)",  price: 2200 },
+      { id: "m_fix",   name: "ترمیم مژه",            price: 800 },
+      { id: "m_lift",  name: "لیفت مژه",             price: 1200 },
+      { id: "m_lam",   name: "لمینت مژه",            price: 1300 },
+      { id: "m_remo",  name: "ریمو مژه",             price: 400 }
     ]},
     { id: "brow", name: "خدمات ابرو", by: "راضیه جون", items: [
-      { id: "b_shape", name: "اصلاح و فرم ابرو",     price: 150000 },
-      { id: "b_color", name: "رنگ ابرو",             price: 220000 },
-      { id: "b_lam",   name: "لمینت ابرو",           price: 650000 },
-      { id: "b_lift",  name: "لیفت ابرو",            price: 600000 },
-      { id: "b_micro", name: "هاشور و میکروبلیدینگ", price: 2800000 },
-      { id: "b_ombre", name: "آمبره ابرو",           price: 3000000 }
+      { id: "b_shape", name: "اصلاح و فرم ابرو",     price: 300 },
+      { id: "b_color", name: "رنگ ابرو",             price: 400 },
+      { id: "b_lam",   name: "لمینت ابرو",           price: 1000 },
+      { id: "b_lift",  name: "لیفت ابرو",            price: 1000 },
+      { id: "b_micro", name: "هاشور و میکروبلیدینگ", price: 4500 },
+      { id: "b_ombre", name: "آمبره ابرو",           price: 5000 }
     ]}
   ];
   var SVC_BY_ID = {}, PRICES = {};
@@ -578,7 +578,7 @@
             '<span class="who">' + (bk.done ? '<span class="check">✓</span>' : "") + esc(bk.name) + "</span>" +
             '<span class="chips">' + (chips || '<span class="chip">بدون خدمت</span>') + "</span>" +
             '<span class="foot">' + (bk.phone ? esc(faDigits(bk.phone)) : "") +
-            '<span class="amount">' + fa(bk.amount || 0) + " تومان</span></span>";
+            '<span class="amount">' + fa(bk.amount || 0) + " لیر</span></span>";
           b.setAttribute("aria-label", "نوبت " + bk.name + " در " + sl.label + " نزد " + sp.name);
         }
         frag.appendChild(b);
@@ -601,7 +601,7 @@
       var rows = g.items.map(function (s) {
         return '<div class="trow">' + esc(s.name) +
                '<input type="text" inputmode="numeric" id="price-' + s.id + '" data-price="' + s.id +
-               '" aria-label="قیمت ' + esc(s.name) + '"><u>تومان</u></div>';
+               '" aria-label="قیمت ' + esc(s.name) + '"><u>لیر</u></div>';
       }).join("");
       sec.innerHTML = "<h3>" + esc(g.name) + "<em>" + esc(g.by) + "</em></h3>" + rows;
       host.appendChild(sec);
@@ -658,7 +658,7 @@
       var c = $("cnt-" + g.id);
       if (c) c.textContent = n ? "(" + fa(n) + ")" : "";
     });
-    $("totalOut").textContent = fa(total) + " تومان";
+    $("totalOut").textContent = fa(total) + " لیر";
     return total;
   }
 
