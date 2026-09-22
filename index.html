@@ -180,6 +180,21 @@
   .trow u{text-decoration:none;font-size:10.5px;color:var(--muted);flex:none}
   .tarhint{grid-column:1/-1;margin:10px 0 0;font-size:11.5px;color:var(--muted);border-top:1px dotted var(--line);padding-top:10px}
 
+  .hours-body{border-top:1px solid var(--line);padding:12px 14px 16px}
+  .hrow{display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px dotted var(--line)}
+  .hrow .n{font-size:11.5px;color:var(--muted);min-width:22px;font-variant-numeric:tabular-nums}
+  .hrow input[type="time"]{
+    font-family:inherit;font-size:14px;font-variant-numeric:tabular-nums;color:var(--ink);
+    background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:6px 10px;direction:ltr;
+  }
+  .hrow input:focus{outline:2px solid var(--berry);outline-offset:1px}
+  .hrow .del{
+    margin-inline-start:auto;font-family:inherit;font-size:12px;padding:5px 12px;border-radius:9px;
+    border:1px solid var(--line);background:transparent;color:var(--muted);cursor:pointer;
+  }
+  .hrow .del:hover{border-color:var(--danger);color:var(--danger)}
+  .hours-body .linkrow button{padding:8px 16px}
+
   .access{
     margin-top:22px;border:1px solid var(--line);border-radius:16px;background:var(--surface);
     box-shadow:var(--shadow);padding:16px 18px;display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start;
@@ -389,6 +404,18 @@
     <footer>با هر بار زدن دکمه، گفتگوی مشتری بعدی با پیام آمادهٔ یادآوری باز می‌شود؛ شما فقط ارسال را می‌زنید و به همین صفحه برمی‌گردید. ردیف خودکار «فرستاده شد» علامت می‌خورد — اگر پیامی را نفرستادید، «لغو نشانه» همان ردیف را برگردانید.</footer>
   </section>
 
+  <details class="tariff" id="hoursBox">
+    <summary>ساعات کاری</summary>
+    <div class="hours-body">
+      <div id="hoursList"></div>
+      <div class="linkrow">
+        <button type="button" id="addHour">افزودن ساعت</button>
+        <button type="button" id="resetHours">بازگشت به پیش‌فرض</button>
+      </div>
+      <p class="tarhint">ساعت هر ردیف را می‌توانید عوض کنید یا با «افزودن ساعت» ردیف تازه بسازید؛ ردیف‌ها خودشان به ترتیب مرتب می‌شوند و جدول نوبت‌ها فوری به‌روز می‌شود. اگر ساعتی را تغییر دهید، نوبت‌های ثبت‌شدهٔ همان ساعت هم با آن جابه‌جا می‌شوند. حذف یک ساعت فقط آن ردیف را از جدول برمی‌دارد؛ اگر دوباره اضافه‌اش کنید، نوبت‌های قدیمی همان ساعت برمی‌گردند.</p>
+    </div>
+  </details>
+
   <details class="tariff">
     <summary>تعرفهٔ خدمات</summary>
     <div class="tariff-body" id="tariff"></div>
@@ -485,13 +512,10 @@
   document.documentElement.setAttribute("lang", "fa");
 
   /* ---------- data ---------- */
-  var SLOTS = [
-    { id: "0930", label: "۰۹:۳۰" },
-    { id: "1130", label: "۱۱:۳۰" },
-    { id: "1330", label: "۱۳:۳۰" },
-    { id: "1530", label: "۱۵:۳۰" },
-    { id: "1700", label: "۱۷:۰۰" }
-  ];
+  /* Working hours are data, not layout: the salon edits them in the page and
+     the grid rebuilds itself around whatever rows are left. */
+  var DEFAULT_SLOTS = ["0930", "1130", "1330", "1530", "1730"];
+  var SLOTS = [];
   var SPECIALISTS = [
     { id: "bahar",  name: "بهار جون",  tr: "Bahar",  initial: "ب", role: "خدمات دست",
       groups: ["hand_care", "hand_nail", "hand_remove", "design"],
@@ -675,10 +699,25 @@
     else if (d.length === 10 && d.charAt(0) === "5") d = "90" + d;
     return d;
   }
-  function slotLatin(id) { return id.slice(0, 2) + ":" + id.slice(2); }
-  function slotLabel(id) {
-    var sl = SLOTS.filter(function (s) { return s.id === id; })[0];
-    return sl ? sl.label : id;
+  function slotLatin(id) { return String(id).slice(0, 2) + ":" + String(id).slice(2); }
+  function slotLabel(id) { return faDigits(slotLatin(id)); }
+  function mkSlot(id) { return { id: id, label: slotLabel(id) }; }
+  function validSlotId(id) {
+    if (!/^[0-9]{4}$/.test(id)) return false;
+    var h = +id.slice(0, 2), m = +id.slice(2);
+    return h >= 0 && h < 24 && m >= 0 && m < 60;
+  }
+  function setSlots(list) {
+    var seen = {}, clean = [];
+    (list || []).forEach(function (id) {
+      id = String(id);
+      if (validSlotId(id) && !seen[id]) { seen[id] = 1; clean.push(id); }
+    });
+    if (!clean.length) clean = DEFAULT_SLOTS.slice();
+    clean.sort();
+    SLOTS.length = 0;
+    clean.forEach(function (id) { SLOTS.push(mkSlot(id)); });
+    return clean;
   }
   function custKey(name, phone) {
     var d = phoneDigits(phone);
@@ -829,6 +868,72 @@
     });
   }
 
+  /* ---------- working hours editor ---------- */
+  function renderHours() {
+    var host = $("hoursList");
+    if (!host) return;
+    host.textContent = "";
+    SLOTS.forEach(function (sl, i) {
+      var row = document.createElement("div");
+      row.className = "hrow";
+      row.innerHTML = '<span class="n">' + fa(i + 1) + "</span>" +
+        '<input type="time" value="' + slotLatin(sl.id) + '" data-slot="' + sl.id +
+        '" aria-label="ساعت ' + esc(sl.label) + '">' +
+        '<button type="button" class="del" data-delslot="' + sl.id + '">حذف</button>';
+      host.appendChild(row);
+    });
+  }
+
+  function currentSlotIds() { return SLOTS.map(function (s) { return s.id; }); }
+
+  function applySlots(list, save) {
+    var clean = setSlots(list);
+    renderHours();
+    renderBoard();
+    if (save) adapter.saveSlots(clean);
+  }
+
+  function onSlots(list) {
+    if (!list || !list.length) return;
+    setSlots(list);
+    renderHours();
+    renderBoard();
+  }
+
+  function editSlot(oldId, value) {
+    var newId = String(value || "").replace(/[^0-9]/g, "");
+    if (!validSlotId(newId)) { renderHours(); toast("ساعت درست نیست."); return; }
+    if (newId === oldId) return;
+    if (currentSlotIds().indexOf(newId) !== -1) { renderHours(); toast("این ساعت از قبل هست."); return; }
+    var list = currentSlotIds().map(function (id) { return id === oldId ? newId : id; });
+    applySlots(list, true);
+    Promise.resolve(adapter.moveSlot(oldId, newId)).then(function (n) {
+      if (n) toast(fa(n) + " نوبت به ساعت تازه منتقل شد.");
+    }, function () { toast("نوبت‌های این ساعت منتقل نشدند."); });
+  }
+
+  function addHour() {
+    var ids = currentSlotIds();
+    var base = ids.length ? ids[ids.length - 1] : "0900";
+    var h = +base.slice(0, 2), m = +base.slice(2);
+    var t = (h * 60 + m + 60) % (24 * 60);
+    var id = String(Math.floor(t / 60)).padStart(2, "0") + String(t % 60).padStart(2, "0");
+    var guard = 0;
+    while (ids.indexOf(id) !== -1 && guard++ < 48) {
+      t = (t + 30) % (24 * 60);
+      id = String(Math.floor(t / 60)).padStart(2, "0") + String(t % 60).padStart(2, "0");
+    }
+    applySlots(ids.concat([id]), true);
+    toast("ساعت " + slotLabel(id) + " اضافه شد — اگر لازم است تغییرش دهید.");
+  }
+
+  function removeHour(id) {
+    var ids = currentSlotIds().filter(function (x) { return x !== id; });
+    if (!ids.length) { toast("دست‌کم یک ساعت کاری لازم است."); return; }
+    applySlots(ids, true);
+    toast("ساعت " + slotLabel(id) + " برداشته شد.");
+  }
+
   function renderAll() { renderDays(); renderHeader(); renderBoard(); }
 
   /* ---------- customer suggestions ---------- */
@@ -944,7 +1049,8 @@
     Promise.resolve(adapter.exportAll()).then(function (data) {
       var payload = {
         app: "infinia-noubat", version: 3, savedAt: new Date().toISOString(),
-        prices: data.prices || {}, customers: data.customers || {}, bookings: data.bookings || {}
+        prices: data.prices || {}, slots: data.slots || currentSlotIds(),
+        customers: data.customers || {}, bookings: data.bookings || {}
       };
       adapter.saveFile("infinia-backup-" + keyOf(new Date()) + ".json", JSON.stringify(payload, null, 2));
     }, function () { toast("پشتیبان گرفته نشد؛ دوباره تلاش کنید."); });
@@ -963,6 +1069,7 @@
       toast("در حال بازیابی…");
       Promise.resolve(adapter.importAll(parsed)).then(function () {
         if (parsed.prices) onPrices(parsed.prices);
+        if (parsed.slots && parsed.slots.length) onSlots(parsed.slots);
         toast("بازیابی انجام شد.");
       }, function () { toast("بازیابی کامل نشد؛ دوباره تلاش کنید."); });
     };
@@ -1343,7 +1450,8 @@
 
   /* ===== ADAPTER-START ===== */
   /* Storage adapter — browser localStorage (this device only, no sign-in). */
-  var BOOK_KEY = "infinia_noubat_v1", PRICE_KEY = "infinia_prices_v1", CUST_KEY = "infinia_customers_v1";
+  var BOOK_KEY = "infinia_noubat_v1", PRICE_KEY = "infinia_prices_v1",
+      CUST_KEY = "infinia_customers_v1", SLOT_KEY = "infinia_slots_v1";
   var adapter = {
     readJSON: function (key, fallback) {
       try { return JSON.parse(localStorage.getItem(key) || "null") || fallback; }
@@ -1378,6 +1486,8 @@
       setStorage(ok, ok ? "ذخیره روی همین دستگاه" : "حافظهٔ مرورگر بسته است — موقتی");
       var p = adapter.readJSON(PRICE_KEY, null);
       if (p) onPrices(p);
+      var sl = adapter.readJSON(SLOT_KEY, null);
+      if (sl && sl.length) onSlots(sl);
       onCustomers(adapter.readJSON(CUST_KEY, {}));
       adapter.watchDate(state.dateKey);
       adapter.refreshReminders();
@@ -1412,6 +1522,26 @@
 
     savePrices: function () { adapter.writeJSON(PRICE_KEY, PRICES); },
 
+    saveSlots: function (list) { adapter.writeJSON(SLOT_KEY, list); },
+
+    moveSlot: function (oldId, newId) {
+      var all = adapter.readAll(), moved = 0;
+      Object.keys(all).forEach(function (id) {
+        var rec = all[id];
+        if (!rec || rec.slot !== oldId || !rec.date || !rec.spec) return;
+        rec.slot = newId;
+        all[rec.date + "_" + rec.spec + "_" + newId] = rec;
+        delete all[id];
+        moved++;
+      });
+      if (moved) {
+        adapter.writeAll(all);
+        adapter.watchDate(state.dateKey);
+        adapter.refreshReminders();
+      }
+      return Promise.resolve(moved);
+    },
+
     saveCustomer: function (id, rec) {
       var all = adapter.readJSON(CUST_KEY, {});
       all[id] = rec;
@@ -1423,7 +1553,8 @@
       return Promise.resolve({
         bookings: adapter.readAll(),
         customers: adapter.readJSON(CUST_KEY, {}),
-        prices: PRICES
+        prices: PRICES,
+        slots: currentSlotIds()
       });
     },
 
@@ -1439,6 +1570,7 @@
       });
       adapter.writeJSON(CUST_KEY, cust);
       if (data.prices) adapter.writeJSON(PRICE_KEY, data.prices);
+      if (data.slots && data.slots.length) adapter.writeJSON(SLOT_KEY, data.slots);
       onCustomers(cust);
       adapter.watchDate(state.dateKey);
       adapter.refreshReminders();
@@ -1528,6 +1660,29 @@
       importVcfFiles(e.target.files || []);
       e.target.value = "";
     });
+    $("hoursList").addEventListener("change", function (e) {
+      var el = e.target;
+      if (el && el.dataset && el.dataset.slot) {
+        if (!state.canWrite) { renderHours(); toast("دسترسی شما فقط‌خواندنی است."); return; }
+        editSlot(el.dataset.slot, el.value);
+      }
+    });
+    $("hoursList").addEventListener("click", function (e) {
+      var el = e.target;
+      if (el && el.dataset && el.dataset.delslot) {
+        if (!state.canWrite) { toast("دسترسی شما فقط‌خواندنی است."); return; }
+        removeHour(el.dataset.delslot);
+      }
+    });
+    $("addHour").addEventListener("click", function () {
+      if (!state.canWrite) { toast("دسترسی شما فقط‌خواندنی است."); return; }
+      addHour();
+    });
+    $("resetHours").addEventListener("click", function () {
+      if (!state.canWrite) { toast("دسترسی شما فقط‌خواندنی است."); return; }
+      applySlots(DEFAULT_SLOTS.slice(), true);
+      toast("ساعات کاری به حالت پیش‌فرض برگشت.");
+    });
     $("exportBtn").addEventListener("click", doExport);
     $("importBtn").addEventListener("click", function () { $("importFile").click(); });
     $("importFile").addEventListener("change", function (e) {
@@ -1574,7 +1729,9 @@
     return true;
   }
 
+  setSlots(DEFAULT_SLOTS.slice());
   var okWire = step(wire, "wire");
+  step(renderHours, "hours");
   var okTariff = step(renderTariff, "tariff");
   var okRender = step(renderAll, "render");
   step(renderReminders, "reminders");
