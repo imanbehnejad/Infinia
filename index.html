@@ -181,6 +181,10 @@
   .tarhint{grid-column:1/-1;margin:10px 0 0;font-size:11.5px;color:var(--muted);border-top:1px dotted var(--line);padding-top:10px}
 
   .hours-body{border-top:1px solid var(--line);padding:12px 14px 16px}
+  .hstatus{margin:0 0 10px;font-size:12px;color:var(--muted)}
+  .hstatus b{color:var(--berry);font-weight:600}
+  .day.hasslots b::after{content:"•";color:var(--gold);font-size:11px;vertical-align:super;margin-inline-start:1px}
+  .day[aria-pressed="true"].hasslots b::after{color:#fff}
   .hrow{display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px dotted var(--line)}
   .hrow .n{font-size:11.5px;color:var(--muted);min-width:22px;font-variant-numeric:tabular-nums}
   .hrow input[type="time"]{
@@ -407,12 +411,14 @@
   <details class="tariff" id="hoursBox">
     <summary>ساعات کاری</summary>
     <div class="hours-body">
+      <p class="hstatus" id="hoursStatus">—</p>
       <div id="hoursList"></div>
       <div class="linkrow">
         <button type="button" id="addHour">افزودن ساعت</button>
-        <button type="button" id="resetHours">بازگشت به پیش‌فرض</button>
+        <button type="button" id="saveDefaultHours">ثبت برای همهٔ روزها</button>
+        <button type="button" id="resetHours" hidden>بازگشت به پیش‌فرض</button>
       </div>
-      <p class="tarhint">ساعت هر ردیف را می‌توانید عوض کنید یا با «افزودن ساعت» ردیف تازه بسازید؛ ردیف‌ها خودشان به ترتیب مرتب می‌شوند و جدول نوبت‌ها فوری به‌روز می‌شود. اگر ساعتی را تغییر دهید، نوبت‌های ثبت‌شدهٔ همان ساعت هم با آن جابه‌جا می‌شوند. حذف یک ساعت فقط آن ردیف را از جدول برمی‌دارد؛ اگر دوباره اضافه‌اش کنید، نوبت‌های قدیمی همان ساعت برمی‌گردند.</p>
+      <p class="tarhint">هر تغییری که اینجا بدهید <b>فقط برای همین روز</b> است؛ بقیهٔ روزها ساعات پیش‌فرض خودشان را نگه می‌دارند. اگر می‌خواهید تغییر برای همهٔ روزها اعمال شود، «ثبت برای همهٔ روزها» را بزنید. نوبت‌های ثبت‌شدهٔ همان ساعت با تغییر ساعت جابه‌جا می‌شوند، و حذف یک ساعت فقط ردیفش را از جدول برمی‌دارد — با افزودن دوباره برمی‌گردد.</p>
     </div>
   </details>
 
@@ -739,7 +745,9 @@
     customers: {},
     reminders: {},
     lang: "fa",
-    langTouched: false
+    langTouched: false,
+    defaultSlots: DEFAULT_SLOTS.slice(),
+    dayHours: {}
   };
   var TOMORROW = keyOf(addDays(today, 1));
   var board;
@@ -756,7 +764,8 @@
       var d = addDays(state.weekStart, i);
       var k = keyOf(d);
       var b = document.createElement("button");
-      b.className = "day" + (k === keyOf(today) ? " today" : "");
+      b.className = "day" + (k === keyOf(today) ? " today" : "") + (dayIsCustom(k) ? " hasslots" : "");
+      if (dayIsCustom(k)) b.title = "این روز ساعات جداگانه دارد";
       b.type = "button";
       b.setAttribute("aria-pressed", k === state.dateKey ? "true" : "false");
       b.dataset.key = k;
@@ -873,6 +882,7 @@
     var host = $("hoursList");
     if (!host) return;
     host.textContent = "";
+    renderHoursStatus();
     SLOTS.forEach(function (sl, i) {
       var row = document.createElement("div");
       row.className = "hrow";
@@ -885,19 +895,62 @@
   }
 
   function currentSlotIds() { return SLOTS.map(function (s) { return s.id; }); }
-
-  function applySlots(list, save) {
-    var clean = setSlots(list);
-    renderHours();
-    renderBoard();
-    if (save) adapter.saveSlots(clean);
+  function dayIsCustom(k) {
+    var o = state.dayHours[k || state.dateKey];
+    return !!(o && o.length);
   }
 
-  function onSlots(list) {
-    if (!list || !list.length) return;
-    setSlots(list);
+  /* One default list for every day, with a per-date exception when the salon
+     changes the hours on a particular day. */
+  function applyEffectiveSlots() {
+    setSlots(state.dayHours[state.dateKey] || state.defaultSlots);
     renderHours();
     renderBoard();
+  }
+
+  function renderHoursStatus() {
+    var el = $("hoursStatus");
+    if (!el) return;
+    var d = dateFromKey(state.dateKey);
+    var day = gFmt(d, { weekday: "long", day: "numeric", month: "long" });
+    el.innerHTML = dayIsCustom()
+      ? "<b>" + esc(day) + "</b> ساعات جداگانهٔ خودش را دارد؛ بقیهٔ روزها پیش‌فرض‌اند."
+      : "<b>" + esc(day) + "</b> از ساعات پیش‌فرض استفاده می‌کند. هر تغییری بدهید فقط برای همین روز ثبت می‌شود.";
+    $("resetHours").hidden = !dayIsCustom();
+  }
+
+  /* Saving hours: `scope` is "day" for this date only, "all" for the default. */
+  function applySlots(list, scope) {
+    var clean = setSlots(list);
+    if (scope === "all") {
+      state.defaultSlots = clean;
+      delete state.dayHours[state.dateKey];
+      adapter.saveSlots(clean);
+      adapter.deleteDayHours(state.dateKey);
+    } else if (scope === "day") {
+      state.dayHours[state.dateKey] = clean;
+      adapter.saveDayHours(state.dateKey, clean);
+    }
+    renderHours();
+    renderBoard();
+    renderDays();
+  }
+
+  function onDefaultSlots(list) {
+    if (!list || !list.length) return;
+    state.defaultSlots = setSlots(list).slice();
+    applyEffectiveSlots();
+  }
+
+  function onDayHours(map) {
+    var next = {};
+    Object.keys(map || {}).forEach(function (k) {
+      var list = (map[k] && map[k].list) || map[k];
+      if (list && list.length) next[k] = list;
+    });
+    state.dayHours = next;
+    applyEffectiveSlots();
+    renderDays();
   }
 
   function editSlot(oldId, value) {
@@ -906,9 +959,9 @@
     if (newId === oldId) return;
     if (currentSlotIds().indexOf(newId) !== -1) { renderHours(); toast("این ساعت از قبل هست."); return; }
     var list = currentSlotIds().map(function (id) { return id === oldId ? newId : id; });
-    applySlots(list, true);
-    Promise.resolve(adapter.moveSlot(oldId, newId)).then(function (n) {
-      if (n) toast(fa(n) + " نوبت به ساعت تازه منتقل شد.");
+    applySlots(list, "day");
+    Promise.resolve(adapter.moveSlot(oldId, newId, state.dateKey)).then(function (n) {
+      if (n) toast(fa(n) + " نوبت این روز به ساعت تازه منتقل شد.");
     }, function () { toast("نوبت‌های این ساعت منتقل نشدند."); });
   }
 
@@ -923,15 +976,15 @@
       t = (t + 30) % (24 * 60);
       id = String(Math.floor(t / 60)).padStart(2, "0") + String(t % 60).padStart(2, "0");
     }
-    applySlots(ids.concat([id]), true);
-    toast("ساعت " + slotLabel(id) + " اضافه شد — اگر لازم است تغییرش دهید.");
+    applySlots(ids.concat([id]), "day");
+    toast("ساعت " + slotLabel(id) + " به همین روز اضافه شد.");
   }
 
   function removeHour(id) {
     var ids = currentSlotIds().filter(function (x) { return x !== id; });
     if (!ids.length) { toast("دست‌کم یک ساعت کاری لازم است."); return; }
-    applySlots(ids, true);
-    toast("ساعت " + slotLabel(id) + " برداشته شد.");
+    applySlots(ids, "day");
+    toast("ساعت " + slotLabel(id) + " از همین روز برداشته شد.");
   }
 
   function renderAll() { renderDays(); renderHeader(); renderBoard(); }
@@ -1049,7 +1102,8 @@
     Promise.resolve(adapter.exportAll()).then(function (data) {
       var payload = {
         app: "infinia-noubat", version: 3, savedAt: new Date().toISOString(),
-        prices: data.prices || {}, slots: data.slots || currentSlotIds(),
+        prices: data.prices || {}, slots: data.slots || state.defaultSlots,
+        dayHours: data.dayHours || {},
         customers: data.customers || {}, bookings: data.bookings || {}
       };
       adapter.saveFile("infinia-backup-" + keyOf(new Date()) + ".json", JSON.stringify(payload, null, 2));
@@ -1069,7 +1123,8 @@
       toast("در حال بازیابی…");
       Promise.resolve(adapter.importAll(parsed)).then(function () {
         if (parsed.prices) onPrices(parsed.prices);
-        if (parsed.slots && parsed.slots.length) onSlots(parsed.slots);
+        if (parsed.slots && parsed.slots.length) onDefaultSlots(parsed.slots);
+        if (parsed.dayHours) onDayHours(parsed.dayHours);
         toast("بازیابی انجام شد.");
       }, function () { toast("بازیابی کامل نشد؛ دوباره تلاش کنید."); });
     };
@@ -1444,6 +1499,7 @@
     if (k === state.dateKey) return;
     state.dateKey = k;
     state.items = {};
+    applyEffectiveSlots();
     renderAll();
     adapter.watchDate(k);
   }
@@ -1451,7 +1507,8 @@
   /* ===== ADAPTER-START ===== */
   /* Storage adapter — browser localStorage (this device only, no sign-in). */
   var BOOK_KEY = "infinia_noubat_v1", PRICE_KEY = "infinia_prices_v1",
-      CUST_KEY = "infinia_customers_v1", SLOT_KEY = "infinia_slots_v1";
+      CUST_KEY = "infinia_customers_v1", SLOT_KEY = "infinia_slots_v1",
+      DAY_KEY = "infinia_dayhours_v1";
   var adapter = {
     readJSON: function (key, fallback) {
       try { return JSON.parse(localStorage.getItem(key) || "null") || fallback; }
@@ -1487,7 +1544,8 @@
       var p = adapter.readJSON(PRICE_KEY, null);
       if (p) onPrices(p);
       var sl = adapter.readJSON(SLOT_KEY, null);
-      if (sl && sl.length) onSlots(sl);
+      if (sl && sl.length) onDefaultSlots(sl);
+      onDayHours(adapter.readJSON(DAY_KEY, {}));
       onCustomers(adapter.readJSON(CUST_KEY, {}));
       adapter.watchDate(state.dateKey);
       adapter.refreshReminders();
@@ -1524,11 +1582,24 @@
 
     saveSlots: function (list) { adapter.writeJSON(SLOT_KEY, list); },
 
-    moveSlot: function (oldId, newId) {
+    saveDayHours: function (dateKey, list) {
+      var all = adapter.readJSON(DAY_KEY, {});
+      all[dateKey] = list;
+      adapter.writeJSON(DAY_KEY, all);
+    },
+
+    deleteDayHours: function (dateKey) {
+      var all = adapter.readJSON(DAY_KEY, {});
+      delete all[dateKey];
+      adapter.writeJSON(DAY_KEY, all);
+    },
+
+    moveSlot: function (oldId, newId, dateKey) {
       var all = adapter.readAll(), moved = 0;
       Object.keys(all).forEach(function (id) {
         var rec = all[id];
         if (!rec || rec.slot !== oldId || !rec.date || !rec.spec) return;
+        if (dateKey && rec.date !== dateKey) return;
         rec.slot = newId;
         all[rec.date + "_" + rec.spec + "_" + newId] = rec;
         delete all[id];
@@ -1554,7 +1625,8 @@
         bookings: adapter.readAll(),
         customers: adapter.readJSON(CUST_KEY, {}),
         prices: PRICES,
-        slots: currentSlotIds()
+        slots: state.defaultSlots,
+        dayHours: adapter.readJSON(DAY_KEY, {})
       });
     },
 
@@ -1571,6 +1643,11 @@
       adapter.writeJSON(CUST_KEY, cust);
       if (data.prices) adapter.writeJSON(PRICE_KEY, data.prices);
       if (data.slots && data.slots.length) adapter.writeJSON(SLOT_KEY, data.slots);
+      if (data.dayHours) {
+        var dh = adapter.readJSON(DAY_KEY, {});
+        Object.keys(data.dayHours).forEach(function (k) { dh[k] = data.dayHours[k]; });
+        adapter.writeJSON(DAY_KEY, dh);
+      }
       onCustomers(cust);
       adapter.watchDate(state.dateKey);
       adapter.refreshReminders();
@@ -1678,10 +1755,18 @@
       if (!state.canWrite) { toast("دسترسی شما فقط‌خواندنی است."); return; }
       addHour();
     });
+    $("saveDefaultHours").addEventListener("click", function () {
+      if (!state.canWrite) { toast("دسترسی شما فقط‌خواندنی است."); return; }
+      applySlots(currentSlotIds(), "all");
+      toast("این ساعات پیش‌فرض همهٔ روزها شد.");
+    });
     $("resetHours").addEventListener("click", function () {
       if (!state.canWrite) { toast("دسترسی شما فقط‌خواندنی است."); return; }
-      applySlots(DEFAULT_SLOTS.slice(), true);
-      toast("ساعات کاری به حالت پیش‌فرض برگشت.");
+      delete state.dayHours[state.dateKey];
+      adapter.deleteDayHours(state.dateKey);
+      applyEffectiveSlots();
+      renderDays();
+      toast("این روز به ساعات پیش‌فرض برگشت.");
     });
     $("exportBtn").addEventListener("click", doExport);
     $("importBtn").addEventListener("click", function () { $("importFile").click(); });
@@ -1729,7 +1814,7 @@
     return true;
   }
 
-  setSlots(DEFAULT_SLOTS.slice());
+  setSlots(state.defaultSlots);
   var okWire = step(wire, "wire");
   step(renderHours, "hours");
   var okTariff = step(renderTariff, "tariff");
