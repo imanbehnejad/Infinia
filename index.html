@@ -368,7 +368,7 @@
 <body>
 <header class="top">
   <div class="top-inner">
-    <div class="brand">اینفینیا<small>دفتر نوبت سالن زیبایی</small></div>
+    <div class="brand">اینفینیا<small>دفتر نوبت سالن زیبایی · نسخهٔ ۱۷</small></div>
     <div class="pill" id="storagePill"><span class="dot" id="storageDot"></span><span id="storageText">در حال اتصال…</span></div>
   </div>
 </header>
@@ -1755,8 +1755,23 @@
       if (!state.canWrite) { toast("دسترسی شما فقط‌خواندنی است."); return; }
       addHour();
     });
-    $("saveDefaultHours").addEventListener("click", function () {
+    /* Two taps, because this one rewrites every day's hours and a stray tap on
+       a phone should not be able to do that. */
+    var defaultArmed = null;
+    $("saveDefaultHours").addEventListener("click", function (e) {
       if (!state.canWrite) { toast("دسترسی شما فقط‌خواندنی است."); return; }
+      var btn = e.currentTarget;
+      if (!defaultArmed) {
+        btn.textContent = "مطمئنم — برای همهٔ روزها";
+        defaultArmed = setTimeout(function () {
+          defaultArmed = null;
+          btn.textContent = "ثبت برای همهٔ روزها";
+        }, 5000);
+        return;
+      }
+      clearTimeout(defaultArmed);
+      defaultArmed = null;
+      btn.textContent = "ثبت برای همهٔ روزها";
       applySlots(currentSlotIds(), "all");
       toast("این ساعات پیش‌فرض همهٔ روزها شد.");
     });
