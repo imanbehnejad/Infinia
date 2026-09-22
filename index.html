@@ -368,7 +368,7 @@
 <body>
 <header class="top">
   <div class="top-inner">
-    <div class="brand">اینفینیا<small>دفتر نوبت سالن زیبایی · نسخهٔ ۱۷</small></div>
+    <div class="brand">اینفینیا<small>دفتر نوبت سالن زیبایی · نسخهٔ ۱۸</small></div>
     <div class="pill" id="storagePill"><span class="dot" id="storageDot"></span><span id="storageText">در حال اتصال…</span></div>
   </div>
 </header>
@@ -456,13 +456,22 @@
 
   <section class="access">
     <div class="col">
-      <h2>این نسخه کجا ذخیره می‌کند؟</h2>
-      <p class="lead">نوبت‌ها، مشتری‌ها و تعرفه در حافظهٔ همین مرورگر می‌مانند: نه حسابی لازم دارد نه اینترنتی، ولی بین گوشی و لپ‌تاپ همگام نمی‌شود. برای بردن اطلاعات از یک دستگاه به دستگاه دیگر، از همین «گرفتن فایل پشتیبان» و «بازیابی از فایل» بالا استفاده کنید.</p>
-      <p class="tip"><b>مهم:</b> اگر داده‌های سایت را در تنظیمات مرورگر پاک کنید، این اطلاعات هم پاک می‌شوند. هفته‌ای یک‌بار پشتیبان بگیرید.</p>
+      <h2>همگام‌سازی بین دستگاه‌ها</h2>
+      <p class="lead" id="cloudLead">—</p>
+      <div class="field" style="gap:8px">
+        <input type="text" id="cloudUrl" placeholder="آدرس پروژه — https://xxxx.supabase.co" dir="ltr" autocomplete="off">
+        <input type="text" id="cloudKey" placeholder="کلید anon public" dir="ltr" autocomplete="off">
+      </div>
+      <div class="linkrow">
+        <button type="button" id="cloudConnect">اتصال</button>
+        <button type="button" id="cloudRefresh" hidden>همگام‌سازی حالا</button>
+        <button type="button" id="cloudDisconnect" hidden>قطع اتصال</button>
+      </div>
+      <p class="tip">با وارد کردن این دو مورد، نوبت‌ها روی سرور خودتان ذخیره می‌شوند و گوشی و لپ‌تاپ یک دفتر مشترک می‌بینند. کلید فقط در حافظهٔ همین مرورگر می‌ماند و داخل فایل سایت نوشته نمی‌شود، پس کسی که آدرس سایت را دارد به اطلاعات مشتری‌ها دسترسی ندارد. اگر وصل نکنید، همه‌چیز مثل قبل فقط روی همین دستگاه کار می‌کند.</p>
     </div>
   </section>
 
-  <p class="note">ساعات کاری: ۰۹:۳۰ · ۱۱:۳۰ · ۱۳:۳۰ · ۱۵:۳۰ · ۱۷:۰۰ — هر متخصص در هر ساعت یک نوبت.</p>
+  <p class="note" id="hoursNote">—</p>
 </div>
 
 <div class="overlay" id="overlay" hidden>
@@ -879,6 +888,12 @@
 
   /* ---------- working hours editor ---------- */
   function renderHours() {
+    var note = $("hoursNote");
+    if (note) {
+      note.textContent = "ساعات این روز: " +
+        SLOTS.map(function (s) { return s.label; }).join(" · ") +
+        " — هر متخصص در هر ساعت یک نوبت.";
+    }
     var host = $("hoursList");
     if (!host) return;
     host.textContent = "";
@@ -1505,11 +1520,18 @@
   }
 
   /* ===== ADAPTER-START ===== */
-  /* Storage adapter — browser localStorage (this device only, no sign-in). */
+  /* Storage adapter: browser storage is always the working copy; when the salon
+     connects a Supabase project the same data also syncs through its REST API,
+     so every device sees one book. Credentials are typed per device and never
+     travel inside the published file. */
   var BOOK_KEY = "infinia_noubat_v1", PRICE_KEY = "infinia_prices_v1",
       CUST_KEY = "infinia_customers_v1", SLOT_KEY = "infinia_slots_v1",
-      DAY_KEY = "infinia_dayhours_v1";
+      DAY_KEY = "infinia_dayhours_v1", CLOUD_KEY = "infinia_cloud_v1",
+      OUTBOX_KEY = "infinia_outbox_v1";
+
   var adapter = {
+    cloud: null, timer: null, busy: false, lastSync: "",
+
     readJSON: function (key, fallback) {
       try { return JSON.parse(localStorage.getItem(key) || "null") || fallback; }
       catch (e) { return fallback; }
@@ -1521,12 +1543,146 @@
     readAll: function () { return adapter.readJSON(BOOK_KEY, {}); },
     writeAll: function (all) { return adapter.writeJSON(BOOK_KEY, all); },
 
+    /* ---------- cloud plumbing ---------- */
+    api: function (path, opts) {
+      if (!adapter.cloud) return Promise.reject(new Error("offline"));
+      opts = opts || {};
+      var headers = {
+        "apikey": adapter.cloud.key,
+        "Authorization": "Bearer " + adapter.cloud.key,
+        "Content-Type": "application/json"
+      };
+      if (opts.prefer) headers["Prefer"] = opts.prefer;
+      return fetch(adapter.cloud.url + "/rest/v1/" + path, {
+        method: opts.method || "GET",
+        headers: headers,
+        body: opts.body ? JSON.stringify(opts.body) : undefined
+      }).then(function (r) {
+        if (!r.ok) return r.text().then(function (t) { throw new Error(r.status + " " + t); });
+        return r.status === 204 ? null : r.json();
+      });
+    },
+
+    outbox: function () { return adapter.readJSON(OUTBOX_KEY, []); },
+
+    enqueue: function (item) {
+      var q = adapter.outbox().filter(function (x) {
+        return !(x.table === item.table && x.id === item.id);
+      });
+      q.push(item);
+      adapter.writeJSON(OUTBOX_KEY, q);
+      adapter.status(false);
+    },
+
+    send: function (it) {
+      return it.remove
+        ? adapter.api(it.table + "?" + it.keyCol + "=eq." + encodeURIComponent(it.id), { method: "DELETE" })
+        : adapter.api(it.table, { method: "POST", prefer: "resolution=merge-duplicates", body: [it.row] });
+    },
+
+    push: function (table, keyCol, id, row, remove) {
+      if (!adapter.cloud) return;
+      var item = { table: table, keyCol: keyCol, id: id, row: row, remove: !!remove };
+      adapter.send(item).then(function () { adapter.status(true); },
+                              function () { adapter.enqueue(item); });
+    },
+
+    /* Anything that failed while the salon was offline waits here and goes out
+       on the next sync, so a booking taken on a bad connection is never lost. */
+    flush: function () {
+      var q = adapter.outbox();
+      if (!adapter.cloud || !q.length) return Promise.resolve(0);
+      var i = 0, left = [];
+      function next() {
+        if (i >= q.length) {
+          adapter.writeJSON(OUTBOX_KEY, left);
+          return Promise.resolve(q.length - left.length);
+        }
+        var it = q[i++];
+        return adapter.send(it).then(next, function () { left.push(it); return next(); });
+      }
+      return next();
+    },
+
+    pull: function (quiet) {
+      if (!adapter.cloud || adapter.busy) return Promise.resolve();
+      adapter.busy = true;
+      return adapter.flush().then(function () {
+        return Promise.all([
+          adapter.api("settings?select=key,data"),
+          adapter.api("customers?select=id,data&limit=1000"),
+          adapter.api("bookings?select=id,data&or=(date.eq." + state.dateKey + ",date.eq." + TOMORROW + ")")
+        ]);
+      }).then(function (res) {
+        var st = {};
+        (res[0] || []).forEach(function (r) { st[r.key] = r.data; });
+        if (st.prices) { adapter.writeJSON(PRICE_KEY, st.prices); onPrices(st.prices); }
+        if (st.slots && st.slots.length) { adapter.writeJSON(SLOT_KEY, st.slots); onDefaultSlots(st.slots); }
+        if (st.dayhours) { adapter.writeJSON(DAY_KEY, st.dayhours); onDayHours(st.dayhours); }
+
+        var cust = {};
+        (res[1] || []).forEach(function (r) { cust[r.id] = r.data; });
+        adapter.writeJSON(CUST_KEY, cust);
+        onCustomers(cust);
+
+        var all = adapter.readAll();
+        Object.keys(all).forEach(function (id) {
+          var d = all[id] && all[id].date;
+          if (d === state.dateKey || d === TOMORROW) delete all[id];
+        });
+        (res[2] || []).forEach(function (r) { all[r.id] = r.data; });
+        adapter.writeAll(all);
+
+        adapter.watchDate(state.dateKey, true);
+        adapter.refreshReminders();
+        adapter.lastSync = new Date().toISOString();
+        adapter.stats();
+        adapter.status(true);
+        adapter.busy = false;
+        if (!quiet) toast("همگام شد.");
+      }, function () {
+        adapter.busy = false;
+        adapter.status(false);
+        if (!quiet) toast("اتصال برقرار نشد؛ آدرس و کلید را بررسی کنید.");
+      });
+    },
+
+    status: function (ok) {
+      var pending = adapter.outbox().length;
+      if (!adapter.cloud) {
+        setStorage(true, "ذخیره روی همین دستگاه");
+      } else if (ok === false) {
+        setStorage(false, "همگام‌سازی قطع است" + (pending ? " — " + fa(pending) + " در صف" : ""));
+      } else {
+        setStorage(true, pending ? fa(pending) + " تغییر در صف همگام‌سازی" : "همگام با سرور");
+      }
+      var lead = $("cloudLead");
+      if (lead) {
+        var when = "";
+        try {
+          if (adapter.lastSync) {
+            when = " — آخرین همگام‌سازی " +
+              new Date(adapter.lastSync).toLocaleTimeString("fa-IR", { hour: "2-digit", minute: "2-digit" });
+          }
+        } catch (e) {}
+        lead.textContent = adapter.cloud
+          ? "وصل است به " + adapter.cloud.url.replace(/^https?:\/\//, "") + when +
+            (pending ? " · " + fa(pending) + " تغییر هنوز فرستاده نشده" : "")
+          : "فعلاً وصل نیست؛ اطلاعات فقط روی همین دستگاه می‌ماند. برای دفتر مشترک، آدرس پروژه و کلید anon را وارد کنید.";
+      }
+      var on = !!adapter.cloud;
+      if ($("cloudRefresh")) $("cloudRefresh").hidden = !on;
+      if ($("cloudDisconnect")) $("cloudDisconnect").hidden = !on;
+      if ($("cloudConnect")) $("cloudConnect").textContent = on ? "ذخیرهٔ تغییر" : "اتصال";
+    },
+
     stats: function () {
       var el = $("storeInfo");
       if (!el) return;
       var nb = Object.keys(adapter.readAll()).length;
       var nc = Object.keys(adapter.readJSON(CUST_KEY, {})).length;
-      el.textContent = fa(nb) + " نوبت و " + fa(nc) + " مشتری روی همین دستگاه ذخیره شده است.";
+      el.textContent = fa(nb) + " نوبت و " + fa(nc) + " مشتری در این دستگاه" +
+        (adapter.cloud ? " و روی سرور" : "") + " ذخیره شده است.";
     },
 
     refreshReminders: function () {
@@ -1537,27 +1693,59 @@
       onReminders(map);
     },
 
+    startPolling: function () {
+      if (adapter.timer) return;
+      adapter.timer = setInterval(function () { adapter.pull(true); }, 20000);
+      document.addEventListener("visibilitychange", function () {
+        if (!document.hidden) adapter.pull(true);
+      });
+    },
+
     init: function () {
       var ok = false;
       try { localStorage.setItem("__infinia", "1"); localStorage.removeItem("__infinia"); ok = true; } catch (e) {}
-      setStorage(ok, ok ? "ذخیره روی همین دستگاه" : "حافظهٔ مرورگر بسته است — موقتی");
+      if (!ok) setStorage(false, "حافظهٔ مرورگر بسته است — موقتی");
+
+      var cfg = adapter.readJSON(CLOUD_KEY, null);
+      if (cfg && cfg.url && cfg.key) adapter.cloud = cfg;
+
       var p = adapter.readJSON(PRICE_KEY, null);
       if (p) onPrices(p);
       var sl = adapter.readJSON(SLOT_KEY, null);
       if (sl && sl.length) onDefaultSlots(sl);
       onDayHours(adapter.readJSON(DAY_KEY, {}));
       onCustomers(adapter.readJSON(CUST_KEY, {}));
-      adapter.watchDate(state.dateKey);
+      adapter.watchDate(state.dateKey, true);
       adapter.refreshReminders();
       adapter.stats();
+      adapter.status();
+
+      if (adapter.cloud) {
+        if ($("cloudUrl")) $("cloudUrl").value = adapter.cloud.url;
+        if ($("cloudKey")) $("cloudKey").value = adapter.cloud.key;
+        adapter.pull(true);
+        adapter.startPolling();
+      }
     },
 
-    watchDate: function (k) {
+    watchDate: function (k, skipFetch) {
       var all = adapter.readAll(), next = {};
       Object.keys(all).forEach(function (id) {
         if (all[id] && all[id].date === k) next[id] = all[id];
       });
       onBookings(next);
+      if (adapter.cloud && !skipFetch) {
+        adapter.api("bookings?select=id,data&date=eq." + k).then(function (rows) {
+          var cache = adapter.readAll(), fresh = {};
+          Object.keys(cache).forEach(function (id) {
+            if (cache[id] && cache[id].date === k) delete cache[id];
+          });
+          (rows || []).forEach(function (r) { cache[r.id] = r.data; fresh[r.id] = r.data; });
+          adapter.writeAll(cache);
+          if (state.dateKey === k) onBookings(fresh);
+          adapter.status(true);
+        }, function () { adapter.status(false); });
+      }
     },
 
     saveBooking: function (id, rec, wasNew, quiet) {
@@ -1566,6 +1754,7 @@
       var ok = adapter.writeAll(all);
       adapter.stats();
       adapter.refreshReminders();
+      adapter.push("bookings", "id", id, { id: id, date: rec.date, data: rec });
       if (!quiet) toast(ok ? (wasNew ? "نوبت ثبت شد." : "تغییرات ذخیره شد.") : "ذخیره نشد — حافظهٔ مرورگر در دسترس نیست.");
     },
 
@@ -1575,42 +1764,60 @@
       var ok = adapter.writeAll(all);
       adapter.stats();
       adapter.refreshReminders();
+      adapter.push("bookings", "id", id, null, true);
       toast(ok ? "نوبت لغو شد." : "لغو ذخیره نشد — حافظهٔ مرورگر در دسترس نیست.");
     },
 
-    savePrices: function () { adapter.writeJSON(PRICE_KEY, PRICES); },
+    setting: function (key, value) {
+      adapter.push("settings", "key", key, { key: key, data: value });
+    },
 
-    saveSlots: function (list) { adapter.writeJSON(SLOT_KEY, list); },
+    savePrices: function () {
+      adapter.writeJSON(PRICE_KEY, PRICES);
+      adapter.setting("prices", PRICES);
+    },
+
+    saveSlots: function (list) {
+      adapter.writeJSON(SLOT_KEY, list);
+      adapter.setting("slots", list);
+    },
 
     saveDayHours: function (dateKey, list) {
       var all = adapter.readJSON(DAY_KEY, {});
       all[dateKey] = list;
       adapter.writeJSON(DAY_KEY, all);
+      adapter.setting("dayhours", all);
     },
 
     deleteDayHours: function (dateKey) {
       var all = adapter.readJSON(DAY_KEY, {});
       delete all[dateKey];
       adapter.writeJSON(DAY_KEY, all);
+      adapter.setting("dayhours", all);
     },
 
     moveSlot: function (oldId, newId, dateKey) {
-      var all = adapter.readAll(), moved = 0;
+      var all = adapter.readAll(), moved = [];
       Object.keys(all).forEach(function (id) {
         var rec = all[id];
         if (!rec || rec.slot !== oldId || !rec.date || !rec.spec) return;
         if (dateKey && rec.date !== dateKey) return;
         rec.slot = newId;
-        all[rec.date + "_" + rec.spec + "_" + newId] = rec;
+        var nid = rec.date + "_" + rec.spec + "_" + newId;
+        all[nid] = rec;
         delete all[id];
-        moved++;
+        moved.push([id, nid, rec]);
       });
-      if (moved) {
+      if (moved.length) {
         adapter.writeAll(all);
-        adapter.watchDate(state.dateKey);
+        adapter.watchDate(state.dateKey, true);
         adapter.refreshReminders();
+        moved.forEach(function (m) {
+          adapter.push("bookings", "id", m[0], null, true);
+          adapter.push("bookings", "id", m[1], { id: m[1], date: m[2].date, data: m[2] });
+        });
       }
-      return Promise.resolve(moved);
+      return Promise.resolve(moved.length);
     },
 
     saveCustomer: function (id, rec) {
@@ -1618,6 +1825,7 @@
       all[id] = rec;
       adapter.writeJSON(CUST_KEY, all);
       adapter.stats();
+      adapter.push("customers", "id", id, { id: id, data: rec });
     },
 
     exportAll: function () {
@@ -1633,23 +1841,32 @@
     importAll: function (data) {
       var all = adapter.readAll();
       Object.keys(data.bookings || {}).forEach(function (k) {
-        if (data.bookings[k] && data.bookings[k].date) all[k] = data.bookings[k];
+        var rec = data.bookings[k];
+        if (rec && rec.date) {
+          all[k] = rec;
+          adapter.push("bookings", "id", k, { id: k, date: rec.date, data: rec });
+        }
       });
       adapter.writeAll(all);
       var cust = adapter.readJSON(CUST_KEY, {});
       Object.keys(data.customers || {}).forEach(function (k) {
-        if (data.customers[k] && data.customers[k].name) cust[k] = data.customers[k];
+        var c = data.customers[k];
+        if (c && c.name) {
+          cust[k] = c;
+          adapter.push("customers", "id", k, { id: k, data: c });
+        }
       });
       adapter.writeJSON(CUST_KEY, cust);
-      if (data.prices) adapter.writeJSON(PRICE_KEY, data.prices);
-      if (data.slots && data.slots.length) adapter.writeJSON(SLOT_KEY, data.slots);
+      if (data.prices) { adapter.writeJSON(PRICE_KEY, data.prices); adapter.setting("prices", data.prices); }
+      if (data.slots && data.slots.length) { adapter.writeJSON(SLOT_KEY, data.slots); adapter.setting("slots", data.slots); }
       if (data.dayHours) {
         var dh = adapter.readJSON(DAY_KEY, {});
         Object.keys(data.dayHours).forEach(function (k) { dh[k] = data.dayHours[k]; });
         adapter.writeJSON(DAY_KEY, dh);
+        adapter.setting("dayhours", dh);
       }
       onCustomers(cust);
-      adapter.watchDate(state.dateKey);
+      adapter.watchDate(state.dateKey, true);
       adapter.refreshReminders();
       adapter.stats();
       return Promise.resolve(true);
@@ -1668,7 +1885,30 @@
       } catch (e) { toast("ذخیرهٔ فایل انجام نشد."); }
     },
 
-    setupSection: function () {}
+    setupSection: function () {
+      $("cloudConnect").addEventListener("click", function () {
+        var url = $("cloudUrl").value.trim().replace(/\/+$/, "");
+        var key = $("cloudKey").value.trim();
+        if (!/^https:\/\/.+/.test(url) || key.length < 20) {
+          toast("آدرس پروژه و کلید anon را کامل وارد کنید.");
+          return;
+        }
+        adapter.cloud = { url: url, key: key };
+        adapter.writeJSON(CLOUD_KEY, adapter.cloud);
+        adapter.status();
+        adapter.pull(false);
+        adapter.startPolling();
+      });
+      $("cloudRefresh").addEventListener("click", function () { adapter.pull(false); });
+      $("cloudDisconnect").addEventListener("click", function () {
+        adapter.cloud = null;
+        try { localStorage.removeItem(CLOUD_KEY); } catch (e) {}
+        if (adapter.timer) { clearInterval(adapter.timer); adapter.timer = null; }
+        adapter.status();
+        adapter.stats();
+        toast("اتصال قطع شد؛ اطلاعات روی همین دستگاه می‌ماند.");
+      });
+    }
   };
   /* ===== ADAPTER-END ===== */
 
