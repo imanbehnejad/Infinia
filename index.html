@@ -186,6 +186,9 @@
   .tgroup h3 em{font-style:normal;font-size:10.5px;font-weight:400;color:var(--muted)}
   .trow{display:flex;gap:10px;align-items:center;padding:3px 0;border-bottom:1px dotted var(--line);font-size:13px}
   .trow input.mins{width:58px}
+  .trow .mins-read{margin-inline-start:0;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .hrow .hread{font-size:14px;font-variant-numeric:tabular-nums}
+  .svc:disabled{cursor:default;opacity:.85}
   .trow input{
     margin-inline-start:auto;width:106px;flex:none;text-align:left;direction:ltr;
     font-family:inherit;font-size:12.5px;font-variant-numeric:tabular-nums;color:var(--ink);
@@ -383,7 +386,7 @@
 <body>
 <header class="top">
   <div class="top-inner">
-    <div class="brand">اینفینیا<small>دفتر نوبت سالن زیبایی · نسخهٔ ۱</small></div>
+    <div class="brand">اینفینیا<small>دفتر نوبت سالن زیبایی · نسخهٔ ۲</small></div>
     <button type="button" class="modebtn" id="modeBtn">حالت ویرایش</button>
     <div class="pill" id="storagePill"><span class="dot" id="storageDot"></span><span id="storageText">در حال اتصال…</span></div>
   </div>
@@ -409,7 +412,7 @@
   <div class="board-scroll"><div class="board" id="board"></div></div>
   <p class="scrollhint">جدول را با انگشت به چپ و راست بکشید تا همهٔ متخصص‌ها را ببینید.</p>
 
-  <section class="remind">
+  <section class="remind" id="remindCard">
     <header>
       <h2>یادآوری واتس‌اپ برای فردا</h2>
       <span id="remindDate">—</span>
@@ -443,7 +446,7 @@
     <div class="tariff-body" id="tariff"></div>
   </details>
 
-  <section class="access">
+  <section class="access" id="custCard">
     <div class="col">
       <h2>دفترچهٔ مشتریان</h2>
       <p class="lead" id="custCount">—</p>
@@ -470,7 +473,7 @@
     </div>
   </section>
 
-  <section class="access">
+  <section class="access" id="backupCard">
     <div class="col">
       <h2>پشتیبان و بازیابی</h2>
       <p class="lead" id="storeInfo">—</p>
@@ -483,7 +486,7 @@
     </div>
   </section>
 
-  <section class="access">
+  <section class="access" id="cloudCard">
     <div class="col">
       <h2>همگام‌سازی بین دستگاه‌ها</h2>
       <p class="lead" id="cloudLead">—</p>
@@ -541,11 +544,11 @@
         <input type="text" id="f-name" placeholder="مثلاً مریم محمدی" autocomplete="off">
         <div class="suggest" id="suggest" hidden></div>
       </div>
-      <div class="field">
+      <div class="field" id="phoneField">
         <label for="f-phone">شماره تماس <span style="opacity:.7">(برای یادآوری واتس‌اپ)</span></label>
         <input type="tel" id="f-phone" placeholder="0535 871 02 36" autocomplete="off" dir="ltr" style="text-align:right">
       </div>
-      <div class="field">
+      <div class="field" id="langField">
         <label>زبان پیام یادآوری</label>
         <div class="langrow">
           <button type="button" class="langbtn" id="lang-fa" data-lang="fa" aria-pressed="true">فارسی</button>
@@ -916,9 +919,15 @@
         ? "این دستگاه فقط نمایش می‌دهد — برای برگرداندن بزنید"
         : "برای اینکه این دستگاه فقط نمایش بدهد بزنید";
     }
+    var hide = !state.canWrite;
+    ["remindCard", "custCard", "backupCard", "cloudCard"].forEach(function (id) {
+      var el = $(id);
+      if (el) el.hidden = hide;
+    });
     renderHeader();
     renderBoard();
     renderHours();
+    renderTariff();
     renderPassCard();
   }
 
@@ -1040,7 +1049,7 @@
             '<span class="who">' + (bk.done ? '<span class="check">✓</span>' : "") + esc(bk.name) +
             (dur ? '<span class="dur">' + esc(dur) + "</span>" : "") + "</span>" +
             '<span class="chips">' + (chips || '<span class="chip">بدون خدمت</span>') + "</span>" +
-            '<span class="foot">' + (bk.phone ? esc(faDigits(bk.phone)) : "") +
+            '<span class="foot">' + (bk.phone && state.canWrite ? esc(faDigits(bk.phone)) : "") +
             '<span class="amount">' + fa(bk.amount || 0) + " لیر</span></span>";
           b.setAttribute("aria-label", "نوبت " + bk.name + " در " + sl.label + " نزد " + sp.name);
         }
@@ -1062,6 +1071,12 @@
       var sec = document.createElement("div");
       sec.className = "tgroup";
       var rows = g.items.map(function (s) {
+        if (!state.canWrite) {
+          return '<div class="trow">' + esc(s.name) +
+                 '<span>' + fa(priceOf(s.id)) + " لیر</span>" +
+                 (durOf(s.id) ? '<span class="mins-read">' + fa(durOf(s.id)) + " دقیقه</span>" : "") +
+                 "</div>";
+        }
         return '<div class="trow">' + esc(s.name) +
                '<input type="text" inputmode="numeric" id="price-' + s.id + '" data-price="' + s.id +
                '" aria-label="قیمت ' + esc(s.name) + '"><u>لیر</u>' +
@@ -1073,9 +1088,11 @@
     });
     var hint = document.createElement("p");
     hint.className = "tarhint";
-    hint.innerHTML = "قیمت و مدت هر خدمت را همین‌جا عوض کنید؛ ذخیره خودکار است. " +
+    hint.innerHTML = state.canWrite
+      ? "قیمت و مدت هر خدمت را همین‌جا عوض کنید؛ ذخیره خودکار است. " +
                      "مدت‌ها تعیین می‌کنند هر نوبت چند ردیف از جدول را بگیرد — مثلاً خدمتی دوساعته، دو ردیف. " +
-                     "مبلغ و مدت نوبت‌های ثبت‌شدهٔ قبلی دست‌نخورده می‌ماند.";
+                     "مبلغ و مدت نوبت‌های ثبت‌شدهٔ قبلی دست‌نخورده می‌ماند."
+      : "این دستگاه روی «فقط مشاهده» است؛ تعرفه فقط نمایش داده می‌شود.";
     host.appendChild(hint);
     syncPriceInputs();
   }
@@ -1106,11 +1123,17 @@
     SLOTS.forEach(function (sl, i) {
       var row = document.createElement("div");
       row.className = "hrow";
-      row.innerHTML = '<span class="n">' + fa(i + 1) + "</span>" +
-        '<input type="time" value="' + slotLatin(sl.id) + '" data-slot="' + sl.id +
-        '" aria-label="ساعت ' + esc(sl.label) + '">' +
-        '<button type="button" class="del" data-delslot="' + sl.id + '">حذف</button>';
+      row.innerHTML = state.canWrite
+        ? '<span class="n">' + fa(i + 1) + "</span>" +
+          '<input type="time" value="' + slotLatin(sl.id) + '" data-slot="' + sl.id +
+          '" aria-label="ساعت ' + esc(sl.label) + '">' +
+          '<button type="button" class="del" data-delslot="' + sl.id + '">حذف</button>'
+        : '<span class="n">' + fa(i + 1) + '</span><b class="hread">' + esc(sl.label) + "</b>";
       host.appendChild(row);
+    });
+    ["addHour", "saveDefaultHours"].forEach(function (id) {
+      var el = $(id);
+      if (el) el.hidden = !state.canWrite;
     });
   }
 
@@ -1136,7 +1159,7 @@
     el.innerHTML = dayIsCustom()
       ? "<b>" + esc(day) + "</b> ساعات جداگانهٔ خودش را دارد؛ بقیهٔ روزها پیش‌فرض‌اند."
       : "<b>" + esc(day) + "</b> از ساعات پیش‌فرض استفاده می‌کند. هر تغییری بدهید فقط برای همین روز ثبت می‌شود.";
-    $("resetHours").hidden = !dayIsCustom();
+    $("resetHours").hidden = !dayIsCustom() || !state.canWrite;
   }
 
   /* Saving hours: `scope` is "day" for this date only, "all" for the default. */
@@ -1657,6 +1680,14 @@
 
     buildServiceButtons(spec);
     syncServiceButtons(spec);
+    /* A viewer sees who is booked and for what, never the phone number. */
+    $("phoneField").hidden = !state.canWrite;
+    $("langField").hidden = !state.canWrite;
+    $("f-name").readOnly = !state.canWrite;
+    $("f-note").readOnly = !state.canWrite;
+    Array.prototype.forEach.call(document.querySelectorAll(".svc"), function (b) {
+      b.disabled = !state.canWrite;
+    });
     $("overlay").hidden = false;
     setTimeout(function () { $("f-name").focus(); }, 30);
   }
