@@ -150,7 +150,13 @@
   .slot.empty .plus{font-size:17px;line-height:1}
   .slot.booked{border:1px solid var(--line);background:var(--surface);box-shadow:var(--shadow);border-inline-start:3px solid var(--spec)}
   .slot.booked:hover{border-color:var(--spec)}
-  .slot .who{font-weight:600;font-size:14px;display:flex;align-items:center;gap:6px}
+  .slot .who{font-weight:600;font-size:14px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .slot .dur{
+    font-weight:400;font-size:10px;color:var(--spec);background:var(--spec-soft);
+    border-radius:999px;padding:0 7px;margin-inline-start:auto;
+  }
+  .slot.long{background:linear-gradient(180deg, var(--surface), var(--spec-soft) 240%)}
+  .totalrow .dur-hint{font-size:11.5px;color:var(--muted)}
   .slot .who .check{color:var(--ok);font-size:12px}
   .chips{display:flex;flex-wrap:wrap;gap:4px}
   .chip{
@@ -171,6 +177,7 @@
   .tgroup h3{margin:0 0 4px;font-size:12px;font-weight:600;color:var(--berry);letter-spacing:.05em;display:flex;gap:8px;align-items:baseline}
   .tgroup h3 em{font-style:normal;font-size:10.5px;font-weight:400;color:var(--muted)}
   .trow{display:flex;gap:10px;align-items:center;padding:3px 0;border-bottom:1px dotted var(--line);font-size:13px}
+  .trow input.mins{width:58px}
   .trow input{
     margin-inline-start:auto;width:106px;flex:none;text-align:left;direction:ltr;
     font-family:inherit;font-size:12.5px;font-variant-numeric:tabular-nums;color:var(--ink);
@@ -368,7 +375,7 @@
 <body>
 <header class="top">
   <div class="top-inner">
-    <div class="brand">اینفینیا<small>دفتر نوبت سالن زیبایی · نسخهٔ ۱۸</small></div>
+    <div class="brand">اینفینیا<small>دفتر نوبت سالن زیبایی · نسخهٔ ۱۹</small></div>
     <div class="pill" id="storagePill"><span class="dot" id="storageDot"></span><span id="storageText">در حال اتصال…</span></div>
   </div>
 </header>
@@ -504,7 +511,7 @@
         <label>خدمات سفارش‌داده‌شده</label>
         <div id="svcHost" style="display:flex;flex-direction:column;gap:12px"></div>
       </div>
-      <div class="totalrow">جمع خدمات انتخاب‌شده <b id="totalOut">۰</b></div>
+      <div class="totalrow">جمع خدمات انتخاب‌شده <span class="dur-hint" id="durOut"></span><b id="totalOut">۰</b></div>
       <div class="field">
         <label for="f-note">یادداشت <span style="opacity:.7">(اختیاری)</span></label>
         <textarea id="f-note" placeholder="مثلاً: طرح ناخن، رنگ لاک، حساسیت پوستی، تخفیف معرفی…"></textarea>
@@ -550,114 +557,130 @@
   ];
   var GROUPS = [
     { id: "hand_care", name: "مانیکور و مراقبت دست", by: "بهار جون، شیرین جون", items: [
-      { id: "hc_dry",   name: "مانیکور خشک",            price: 800 },
-      { id: "hc_spa",   name: "اسپا مانیکور",           price: 1000 },
-      { id: "hc_para",  name: "پارافین تراپی دست",      price: 1200 }
+      { id: "hc_dry",   name: "مانیکور خشک",            price: 800, min: 45 },
+      { id: "hc_spa",   name: "اسپا مانیکور",           price: 1000, min: 60 },
+      { id: "hc_para",  name: "پارافین تراپی دست",      price: 1200, min: 30 }
     ]},
     { id: "hand_nail", name: "ناخن دست", by: "بهار جون، شیرین جون", items: [
-      { id: "hn_gelish",  name: "ژلیش دست",                   price: 1100 },
-      { id: "hn_lam",     name: "لمینت و ژلیش دست",           price: 1400 },
-      { id: "hn_gelfix",  name: "ترمیم ژل",                   price: 1500 },
-      { id: "hn_polyfix", name: "ترمیم پلی ژل",               price: 1800 },
-      { id: "hn_protez",  name: "کاشت ناخن ژل (از … به بالا)", price: 2000 },
-      { id: "hn_former",  name: "کاشت ناخن فرمر (از … به بالا)", price: 2200 },
-      { id: "hn_single",  name: "کاشت تک ناخن دست",           price: 150 }
+      { id: "hn_gelish",  name: "ژلیش دست",                   price: 1100, min: 60 },
+      { id: "hn_lam",     name: "لمینت و ژلیش دست",           price: 1400, min: 90 },
+      { id: "hn_gelfix",  name: "ترمیم ژل",                   price: 1500, min: 90 },
+      { id: "hn_polyfix", name: "ترمیم پلی ژل",               price: 1800, min: 90 },
+      { id: "hn_protez",  name: "کاشت ناخن ژل (از … به بالا)", price: 2000, min: 150 },
+      { id: "hn_former",  name: "کاشت ناخن فرمر (از … به بالا)", price: 2200, min: 180 },
+      { id: "hn_single",  name: "کاشت تک ناخن دست",           price: 150, min: 15 }
     ]},
     { id: "hand_remove", name: "برداشت — دست", by: "بهار جون، شیرین جون", items: [
-      { id: "hr_gelish", name: "برداشت ژلیش دست",  price: 300 },
-      { id: "hr_lam",    name: "برداشت لمینت",     price: 400 },
-      { id: "hr_protez", name: "برداشت کاشت",      price: 500 }
+      { id: "hr_gelish", name: "برداشت ژلیش دست",  price: 300, min: 20 },
+      { id: "hr_lam",    name: "برداشت لمینت",     price: 400, min: 30 },
+      { id: "hr_protez", name: "برداشت کاشت",      price: 500, min: 40 }
     ]},
     { id: "design", name: "طراحی ناخن", by: "بهار جون، شیرین جون", items: [
-      { id: "dg_each",    name: "طراحی هر ناخن (از … به بالا)", price: 50 },
-      { id: "dg_french",  name: "فرنچ",                price: 300 },
-      { id: "dg_cfrench", name: "فرنچ رنگی",           price: 400 },
-      { id: "dg_ombre",   name: "آمبره",               price: 200 },
-      { id: "dg_chrome",  name: "پودر کروم",           price: 200 },
-      { id: "dg_flex",    name: "فلکسی ژل",            price: 100 },
-      { id: "dg_disco",   name: "دیسکو ژل",            price: 100 },
-      { id: "dg_snow",    name: "لاک ژل برفکی",        price: 100 },
-      { id: "dg_magnet",  name: "لاک ژل آهنربایی",     price: 100 }
+      { id: "dg_each",    name: "طراحی هر ناخن (از … به بالا)", price: 50, min: 5 },
+      { id: "dg_french",  name: "فرنچ",                price: 300, min: 15 },
+      { id: "dg_cfrench", name: "فرنچ رنگی",           price: 400, min: 15 },
+      { id: "dg_ombre",   name: "آمبره",               price: 200, min: 15 },
+      { id: "dg_chrome",  name: "پودر کروم",           price: 200, min: 10 },
+      { id: "dg_flex",    name: "فلکسی ژل",            price: 100, min: 10 },
+      { id: "dg_disco",   name: "دیسکو ژل",            price: 100, min: 10 },
+      { id: "dg_snow",    name: "لاک ژل برفکی",        price: 100, min: 10 },
+      { id: "dg_magnet",  name: "لاک ژل آهنربایی",     price: 100, min: 10 }
     ]},
     { id: "foot", name: "خدمات پا", by: "شیرین جون", items: [
-      { id: "ft_dry",    name: "پدیکور خشک",                price: 900 },
-      { id: "ft_spa",    name: "اسپا پدیکور",               price: 1500 },
-      { id: "ft_lux",    name: "پدیکور لوکس",               price: 1600 },
-      { id: "ft_milk",   name: "پدیکور شیر و عسل",          price: 1800 },
-      { id: "ft_para",   name: "پارافین تراپی پا (افزودنی)", price: 400 },
-      { id: "ft_gelish", name: "ژلیش پا",                   price: 1200 },
-      { id: "ft_single", name: "کاشت تک ناخن پا",           price: 250 },
-      { id: "ft_remove", name: "برداشت ژلیش پا",            price: 300 }
+      { id: "ft_dry",    name: "پدیکور خشک",                price: 900, min: 45 },
+      { id: "ft_spa",    name: "اسپا پدیکور",               price: 1500, min: 60 },
+      { id: "ft_lux",    name: "پدیکور لوکس",               price: 1600, min: 75 },
+      { id: "ft_milk",   name: "پدیکور شیر و عسل",          price: 1800, min: 75 },
+      { id: "ft_para",   name: "پارافین تراپی پا (افزودنی)", price: 400, min: 30 },
+      { id: "ft_gelish", name: "ژلیش پا",                   price: 1200, min: 60 },
+      { id: "ft_single", name: "کاشت تک ناخن پا",           price: 250, min: 15 },
+      { id: "ft_remove", name: "برداشت ژلیش پا",            price: 300, min: 20 }
     ]},
     { id: "laser_w", name: "لیزر — بانوان", by: "مهسا جون", items: [
-      { id: "lw_lip",       name: "پشت لب",            price: 300 },
-      { id: "lw_faul",      name: "خط ریش (فاول)",     price: 300 },
-      { id: "lw_face",      name: "صورت",              price: 800 },
-      { id: "lw_chin",      name: "چانه",              price: 300 },
-      { id: "lw_neck",      name: "گردن",              price: 350 },
-      { id: "lw_faceneck",  name: "صورت و گردن",       price: 950 },
-      { id: "lw_chest",     name: "سینه",              price: 650 },
-      { id: "lw_belly",     name: "شکم",               price: 700 },
-      { id: "lw_bline",     name: "خط شکم",            price: 400 },
-      { id: "lw_under",     name: "زیربغل",            price: 650 },
-      { id: "lw_fullarm",   name: "کل دست",            price: 950 },
-      { id: "lw_halfarm",   name: "نیم دست",           price: 700 },
-      { id: "lw_fullleg",   name: "کل پا",             price: 1400 },
-      { id: "lw_halfleg",   name: "نیم پا",            price: 950 },
-      { id: "lw_bikini",    name: "بیکینی",            price: 1050 },
-      { id: "lw_waist",     name: "کمر",               price: 650 },
-      { id: "lw_back",      name: "پشت",               price: 900 },
-      { id: "lw_hip",       name: "باسن",              price: 800 },
-      { id: "lw_fingers",   name: "روی انگشتان",       price: 350 },
-      { id: "lw_body",      name: "کل بدن",            price: 3600 },
-      { id: "lw_all",       name: "سر تا پا",          price: 5100 },
-      { id: "lw_l_under",   name: "روشن‌سازی زیربغل",  price: 1000 },
-      { id: "lw_l_knee",    name: "روشن‌سازی زانو",    price: 1000 },
-      { id: "lw_l_elbow",   name: "روشن‌سازی آرنج",    price: 1000 },
-      { id: "lw_l_pack",    name: "پکیج روشن‌سازی (زیربغل، زانو، آرنج)", price: 2500 }
+      { id: "lw_lip",       name: "پشت لب",            price: 300, min: 10 },
+      { id: "lw_faul",      name: "خط ریش (فاول)",     price: 300, min: 10 },
+      { id: "lw_face",      name: "صورت",              price: 800, min: 20 },
+      { id: "lw_chin",      name: "چانه",              price: 300, min: 10 },
+      { id: "lw_neck",      name: "گردن",              price: 350, min: 10 },
+      { id: "lw_faceneck",  name: "صورت و گردن",       price: 950, min: 25 },
+      { id: "lw_chest",     name: "سینه",              price: 650, min: 15 },
+      { id: "lw_belly",     name: "شکم",               price: 700, min: 15 },
+      { id: "lw_bline",     name: "خط شکم",            price: 400, min: 10 },
+      { id: "lw_under",     name: "زیربغل",            price: 650, min: 10 },
+      { id: "lw_fullarm",   name: "کل دست",            price: 950, min: 20 },
+      { id: "lw_halfarm",   name: "نیم دست",           price: 700, min: 15 },
+      { id: "lw_fullleg",   name: "کل پا",             price: 1400, min: 30 },
+      { id: "lw_halfleg",   name: "نیم پا",            price: 950, min: 20 },
+      { id: "lw_bikini",    name: "بیکینی",            price: 1050, min: 20 },
+      { id: "lw_waist",     name: "کمر",               price: 650, min: 15 },
+      { id: "lw_back",      name: "پشت",               price: 900, min: 20 },
+      { id: "lw_hip",       name: "باسن",              price: 800, min: 15 },
+      { id: "lw_fingers",   name: "روی انگشتان",       price: 350, min: 10 },
+      { id: "lw_body",      name: "کل بدن",            price: 3600, min: 60 },
+      { id: "lw_all",       name: "سر تا پا",          price: 5100, min: 75 },
+      { id: "lw_l_under",   name: "روشن‌سازی زیربغل",  price: 1000, min: 20 },
+      { id: "lw_l_knee",    name: "روشن‌سازی زانو",    price: 1000, min: 20 },
+      { id: "lw_l_elbow",   name: "روشن‌سازی آرنج",    price: 1000, min: 20 },
+      { id: "lw_l_pack",    name: "پکیج روشن‌سازی (زیربغل، زانو، آرنج)", price: 2500, min: 45 }
     ]},
     { id: "laser_m", name: "لیزر — آقایان", by: "مهسا جون", items: [
-      { id: "lm_neck",     name: "گردن",        price: 500 },
-      { id: "lm_cheek",    name: "گونه",        price: 400 },
-      { id: "lm_belly",    name: "شکم",         price: 900 },
-      { id: "lm_arm",      name: "کل دست",      price: 1200 },
-      { id: "lm_under",    name: "زیربغل",      price: 800 },
-      { id: "lm_leg",      name: "کل پا",       price: 2000 },
-      { id: "lm_waist",    name: "کمر",         price: 800 },
-      { id: "lm_back",     name: "پشت",         price: 1100 },
-      { id: "lm_upper",    name: "بالاتنه",     price: 1100 },
-      { id: "lm_shoulder", name: "شانه",        price: 800 },
-      { id: "lm_nape",     name: "پشت گردن",    price: 500 },
-      { id: "lm_body",     name: "کل بدن",      price: 5900 }
+      { id: "lm_neck",     name: "گردن",        price: 500, min: 10 },
+      { id: "lm_cheek",    name: "گونه",        price: 400, min: 10 },
+      { id: "lm_belly",    name: "شکم",         price: 900, min: 20 },
+      { id: "lm_arm",      name: "کل دست",      price: 1200, min: 25 },
+      { id: "lm_under",    name: "زیربغل",      price: 800, min: 10 },
+      { id: "lm_leg",      name: "کل پا",       price: 2000, min: 40 },
+      { id: "lm_waist",    name: "کمر",         price: 800, min: 15 },
+      { id: "lm_back",     name: "پشت",         price: 1100, min: 25 },
+      { id: "lm_upper",    name: "بالاتنه",     price: 1100, min: 30 },
+      { id: "lm_shoulder", name: "شانه",        price: 800, min: 15 },
+      { id: "lm_nape",     name: "پشت گردن",    price: 500, min: 10 },
+      { id: "lm_body",     name: "کل بدن",      price: 5900, min: 90 }
     ]},
     { id: "lash", name: "خدمات مژه", by: "سحر جون", items: [
-      { id: "ls_classic",    name: "کلاسیک طبیعی",              price: 2000 },
-      { id: "ls_classicfix", name: "ترمیم کلاسیک",              price: 1800 },
-      { id: "ls_spiky",      name: "اسپایکی",                   price: 2200 },
-      { id: "ls_spikyfix",   name: "ترمیم اسپایکی",             price: 1900 },
-      { id: "ls_volume",     name: "والیوم",                    price: 2500 },
-      { id: "ls_volumefix",  name: "ترمیم والیوم",              price: 2100 },
-      { id: "ls_super",      name: "سوپر والیوم",               price: 3000 },
-      { id: "ls_lift",       name: "لیفت مژه",                  price: 1700 },
-      { id: "ls_remove",     name: "ریمو مژه",                  price: 400 },
-      { id: "ls_color",      name: "L+ / M+ / قهوه‌ای (افزودنی)", price: 300 }
+      { id: "ls_classic",    name: "کلاسیک طبیعی",              price: 2000, min: 120 },
+      { id: "ls_classicfix", name: "ترمیم کلاسیک",              price: 1800, min: 90 },
+      { id: "ls_spiky",      name: "اسپایکی",                   price: 2200, min: 135 },
+      { id: "ls_spikyfix",   name: "ترمیم اسپایکی",             price: 1900, min: 90 },
+      { id: "ls_volume",     name: "والیوم",                    price: 2500, min: 150 },
+      { id: "ls_volumefix",  name: "ترمیم والیوم",              price: 2100, min: 105 },
+      { id: "ls_super",      name: "سوپر والیوم",               price: 3000, min: 165 },
+      { id: "ls_lift",       name: "لیفت مژه",                  price: 1700, min: 60 },
+      { id: "ls_remove",     name: "ریمو مژه",                  price: 400, min: 20 },
+      { id: "ls_color",      name: "L+ / M+ / قهوه‌ای (افزودنی)", price: 300, min: 0 }
     ]},
     { id: "brow", name: "ابرو و آرایش دائم", by: "راضیه جون", items: [
-      { id: "bw_shape",  name: "اصلاح و فرم‌دهی ابرو",     price: 500 },
-      { id: "bw_lift",   name: "لیفت ابرو",                price: 1700 },
-      { id: "bw_micro",  name: "میکروبلیدینگ",             price: 7500 },
-      { id: "bw_lip",    name: "رنگ دائم لب (شیدینگ)",     price: 7000 },
-      { id: "bw_thread", name: "اصلاح پشت لب (با نخ)",     price: 300 },
-      { id: "bw_face",   name: "اصلاح کامل صورت (با نخ)",  price: 1000 }
+      { id: "bw_shape",  name: "اصلاح و فرم‌دهی ابرو",     price: 500, min: 15 },
+      { id: "bw_lift",   name: "لیفت ابرو",                price: 1700, min: 45 },
+      { id: "bw_micro",  name: "میکروبلیدینگ",             price: 7500, min: 120 },
+      { id: "bw_lip",    name: "رنگ دائم لب (شیدینگ)",     price: 7000, min: 120 },
+      { id: "bw_thread", name: "اصلاح پشت لب (با نخ)",     price: 300, min: 10 },
+      { id: "bw_face",   name: "اصلاح کامل صورت (با نخ)",  price: 1000, min: 30 }
     ]}
   ];
-  var SVC_BY_ID = {}, PRICES = {};
+  var SVC_BY_ID = {}, PRICES = {}, DURS = {};
   GROUPS.forEach(function (g) {
-    g.items.forEach(function (s) { SVC_BY_ID[s.id] = s; PRICES[s.id] = s.price; });
+    g.items.forEach(function (s) {
+      SVC_BY_ID[s.id] = s;
+      PRICES[s.id] = s.price;
+      DURS[s.id] = typeof s.min === "number" ? s.min : 0;
+    });
   });
   function priceOf(id) {
     var p = PRICES[id];
     return typeof p === "number" && isFinite(p) ? p : 0;
+  }
+  function durOf(id) {
+    var d = DURS[id];
+    return typeof d === "number" && isFinite(d) && d > 0 ? d : 0;
+  }
+  function humanDur(m) {
+    m = Math.round(m || 0);
+    if (!m) return "";
+    var h = Math.floor(m / 60), r = m % 60;
+    if (h && r) return fa(h) + " ساعت و " + fa(r) + " دقیقه";
+    if (h) return fa(h) + " ساعت";
+    return fa(r) + " دقیقه";
   }
 
   /* ---------- helpers ---------- */
@@ -717,6 +740,31 @@
   function slotLatin(id) { return String(id).slice(0, 2) + ":" + String(id).slice(2); }
   function slotLabel(id) { return faDigits(slotLatin(id)); }
   function mkSlot(id) { return { id: id, label: slotLabel(id) }; }
+  function slotMinutes(id) { return (+String(id).slice(0, 2)) * 60 + (+String(id).slice(2)); }
+  /* How many rows a booking swallows: walk forward until the gaps between the
+     working hours cover its length. The last row of the day absorbs the rest. */
+  function gapAfter(i) {
+    if (i + 1 >= SLOTS.length) return 100000;
+    return slotMinutes(SLOTS[i + 1].id) - slotMinutes(SLOTS[i].id);
+  }
+  function spanFor(slotIndex, mins) {
+    if (!mins || slotIndex < 0) return 1;
+    var n = 1, covered = gapAfter(slotIndex);
+    while (covered < mins && slotIndex + n < SLOTS.length) {
+      covered += gapAfter(slotIndex + n);
+      n++;
+    }
+    return n;
+  }
+  function slotIndexOf(id) {
+    for (var i = 0; i < SLOTS.length; i++) if (SLOTS[i].id === id) return i;
+    return -1;
+  }
+  function bookingMins(bk) {
+    if (!bk) return 0;
+    if (typeof bk.mins === "number" && bk.mins > 0) return bk.mins;
+    return (bk.services || []).reduce(function (a, k) { return a + durOf(k); }, 0);
+  }
   function validSlotId(id) {
     if (!/^[0-9]{4}$/.test(id)) return false;
     var h = +id.slice(0, 2), m = +id.slice(2);
@@ -800,45 +848,70 @@
     board.textContent = "";
     board.style.gridTemplateColumns = "var(--timew) repeat(" + SPECIALISTS.length + ", minmax(150px, 1fr))";
     var frag = document.createDocumentFragment();
+
     var corner = document.createElement("div");
     corner.className = "corner";
+    corner.style.gridColumn = "1";
+    corner.style.gridRow = "1";
     frag.appendChild(corner);
-    SPECIALISTS.forEach(function (sp) {
+
+    SPECIALISTS.forEach(function (sp, j) {
       var h = document.createElement("div");
       h.className = "colhead";
+      h.style.gridColumn = String(j + 2);
+      h.style.gridRow = "1";
       h.style.setProperty("--spec", sp.color);
       h.style.setProperty("--spec-soft", sp.soft);
       h.innerHTML = '<span class="avatar">' + esc(sp.initial) + "</span>" + esc(sp.name) + "<em>" + esc(sp.role) + "</em>";
       frag.appendChild(h);
     });
 
-    var count = 0, done = 0, sum = 0;
-    SLOTS.forEach(function (sl) {
+    SLOTS.forEach(function (sl, i) {
       var t = document.createElement("div");
       t.className = "timelabel";
+      t.style.gridColumn = "1";
+      t.style.gridRow = String(i + 2);
       t.innerHTML = "<b>" + esc(sl.label) + "</b>";
       frag.appendChild(t);
+    });
 
-      SPECIALISTS.forEach(function (sp) {
+    var count = 0, done = 0, sum = 0, used = 0;
+
+    SPECIALISTS.forEach(function (sp, j) {
+      var coveredUntil = -1;
+      SLOTS.forEach(function (sl, i) {
+        if (i <= coveredUntil) return;
         var bk = state.items[bookingId(sp.id, sl.id)];
         var b = document.createElement("button");
         b.type = "button";
         b.dataset.spec = sp.id;
         b.dataset.slot = sl.id;
+        b.style.gridColumn = String(j + 2);
         b.style.setProperty("--spec", sp.color);
         b.style.setProperty("--spec-soft", sp.soft);
+
         if (!bk) {
+          b.style.gridRow = String(i + 2);
           b.className = "slot empty";
           b.innerHTML = '<span class="plus">+</span><span>خالی</span>';
           b.setAttribute("aria-label", "ثبت نوبت " + sl.label + " برای " + sp.name);
         } else {
-          count++; if (bk.done) done++; sum += Number(bk.amount || 0);
+          var mins = bookingMins(bk);
+          var span = spanFor(i, mins);
+          coveredUntil = i + span - 1;
+          used += span;
+          count++;
+          if (bk.done) done++;
+          sum += Number(bk.amount || 0);
+          b.style.gridRow = String(i + 2) + " / span " + span;
           var chips = (bk.services || []).map(function (id) {
             return SVC_BY_ID[id] ? '<span class="chip">' + esc(SVC_BY_ID[id].name) + "</span>" : "";
           }).join("");
-          b.className = "slot booked" + (bk.done ? " done" : "");
+          var dur = humanDur(mins);
+          b.className = "slot booked" + (bk.done ? " done" : "") + (span > 1 ? " long" : "");
           b.innerHTML =
-            '<span class="who">' + (bk.done ? '<span class="check">✓</span>' : "") + esc(bk.name) + "</span>" +
+            '<span class="who">' + (bk.done ? '<span class="check">✓</span>' : "") + esc(bk.name) +
+            (dur ? '<span class="dur">' + esc(dur) + "</span>" : "") + "</span>" +
             '<span class="chips">' + (chips || '<span class="chip">بدون خدمت</span>') + "</span>" +
             '<span class="foot">' + (bk.phone ? esc(faDigits(bk.phone)) : "") +
             '<span class="amount">' + fa(bk.amount || 0) + " لیر</span></span>";
@@ -850,7 +923,7 @@
 
     board.appendChild(frag);
     $("stCount").textContent = fa(count);
-    $("stFree").textContent = fa(SLOTS.length * SPECIALISTS.length - count);
+    $("stFree").textContent = fa(Math.max(0, SLOTS.length * SPECIALISTS.length - used));
     $("stDone").textContent = fa(done);
     $("stSum").textContent = fa(sum);
   }
@@ -864,15 +937,18 @@
       var rows = g.items.map(function (s) {
         return '<div class="trow">' + esc(s.name) +
                '<input type="text" inputmode="numeric" id="price-' + s.id + '" data-price="' + s.id +
-               '" aria-label="قیمت ' + esc(s.name) + '"><u>لیر</u></div>';
+               '" aria-label="قیمت ' + esc(s.name) + '"><u>لیر</u>' +
+               '<input type="text" inputmode="numeric" class="mins" id="min-' + s.id + '" data-min="' + s.id +
+               '" aria-label="مدت ' + esc(s.name) + '"><u>دقیقه</u></div>';
       }).join("");
       sec.innerHTML = "<h3>" + esc(g.name) + "<em>" + esc(g.by) + "</em></h3>" + rows;
       host.appendChild(sec);
     });
     var hint = document.createElement("p");
     hint.className = "tarhint";
-    hint.innerHTML = "قیمت‌ها را همین‌جا می‌توانید عوض کنید؛ ذخیره خودکار است و برای همهٔ دستگاه‌ها اعمال می‌شود. " +
-                     "مبلغ نوبت‌های ثبت‌شدهٔ قبلی دست‌نخورده می‌ماند.";
+    hint.innerHTML = "قیمت و مدت هر خدمت را همین‌جا عوض کنید؛ ذخیره خودکار است. " +
+                     "مدت‌ها تعیین می‌کنند هر نوبت چند ردیف از جدول را بگیرد — مثلاً خدمتی دوساعته، دو ردیف. " +
+                     "مبلغ و مدت نوبت‌های ثبت‌شدهٔ قبلی دست‌نخورده می‌ماند.";
     host.appendChild(hint);
     syncPriceInputs();
   }
@@ -882,6 +958,8 @@
       g.items.forEach(function (s) {
         var el = $("price-" + s.id);
         if (el && document.activeElement !== el) el.value = priceOf(s.id).toLocaleString("en-US");
+        var m = $("min-" + s.id);
+        if (m && document.activeElement !== m) m.value = String(durOf(s.id) || "");
       });
     });
   }
@@ -1117,7 +1195,8 @@
     Promise.resolve(adapter.exportAll()).then(function (data) {
       var payload = {
         app: "infinia-noubat", version: 3, savedAt: new Date().toISOString(),
-        prices: data.prices || {}, slots: data.slots || state.defaultSlots,
+        prices: data.prices || {}, durations: data.durations || DURS,
+        slots: data.slots || state.defaultSlots,
         dayHours: data.dayHours || {},
         customers: data.customers || {}, bookings: data.bookings || {}
       };
@@ -1138,6 +1217,7 @@
       toast("در حال بازیابی…");
       Promise.resolve(adapter.importAll(parsed)).then(function () {
         if (parsed.prices) onPrices(parsed.prices);
+        if (parsed.durations) onDurations(parsed.durations);
         if (parsed.slots && parsed.slots.length) onDefaultSlots(parsed.slots);
         if (parsed.dayHours) onDayHours(parsed.dayHours);
         toast("بازیابی انجام شد.");
@@ -1383,7 +1463,8 @@
       wrap.className = "svcgroup";
       var chips = g.items.map(function (s) {
         return '<button type="button" class="svc" id="svc-' + s.id + '" data-svc="' + s.id +
-               '" aria-pressed="false">' + esc(s.name) + "<small>" + fa(priceOf(s.id)) + "</small></button>";
+               '" aria-pressed="false">' + esc(s.name) + "<small>" + fa(priceOf(s.id)) +
+               (durOf(s.id) ? " · " + fa(durOf(s.id)) + "د" : "") + "</small></button>";
       }).join("");
       wrap.innerHTML = '<h4>' + esc(g.name) + ' <span class="n" id="cnt-' + g.id + '"></span></h4>' +
                        '<div class="svcgrid">' + chips + "</div>";
@@ -1392,7 +1473,7 @@
   }
 
   function syncServiceButtons(spec) {
-    var sp = specById(spec), total = 0;
+    var sp = specById(spec), total = 0, mins = 0;
     sp.groups.forEach(function (gid) {
       var g = groupById(gid), n = 0;
       g.items.forEach(function (s) {
@@ -1400,12 +1481,19 @@
         if (!b) return;
         var on = !!state.picked[s.id];
         b.setAttribute("aria-pressed", on ? "true" : "false");
-        if (on) { n++; total += priceOf(s.id); }
+        if (on) { n++; total += priceOf(s.id); mins += durOf(s.id); }
       });
       var c = $("cnt-" + g.id);
       if (c) c.textContent = n ? "(" + fa(n) + ")" : "";
     });
     $("totalOut").textContent = fa(total) + " لیر";
+    var d = $("durOut");
+    if (d) {
+      if (!mins) { d.textContent = ""; return total; }
+      var i = state.editing ? slotIndexOf(state.editing.slot) : -1;
+      var span = spanFor(i, mins);
+      d.textContent = humanDur(mins) + (span > 1 ? " · " + fa(span) + " ردیف از جدول" : "");
+    }
     return total;
   }
 
@@ -1475,11 +1563,28 @@
     });
     var services = Object.keys(state.picked).filter(function (k) { return state.picked[k] && allowed[k]; });
     var amount = services.reduce(function (a, k) { return a + priceOf(k); }, 0);
+    var mins = services.reduce(function (a, k) { return a + durOf(k); }, 0);
+
+    /* A long service eats the following hours; refuse rather than double-book. */
+    var idx = slotIndexOf(state.editing.slot);
+    var span = spanFor(idx, mins);
+    var clash = null;
+    for (var q = 1; q < span; q++) {
+      var nextSlot = SLOTS[idx + q];
+      if (!nextSlot) break;
+      var other = state.items[bookingId(state.editing.spec, nextSlot.id)];
+      if (other) { clash = { slot: nextSlot, who: other.name }; break; }
+    }
+    if (clash) {
+      $("formErr").textContent = "این خدمات " + humanDur(mins) + " طول می‌کشد و ساعت " +
+        clash.slot.label + " همین متخصص برای " + clash.who + " رزرو است.";
+      return;
+    }
     var phone = $("f-phone").value.trim();
     var rec = {
       date: state.dateKey, slot: state.editing.slot, spec: state.editing.spec,
       name: name, phone: phone, lang: state.lang,
-      services: services, amount: amount,
+      services: services, amount: amount, mins: mins,
       note: $("f-note").value.trim(), done: $("f-done").checked,
       remindedAt: (state.editing.existing && state.editing.existing.remindedAt) || "",
       updatedAt: new Date().toISOString()
@@ -1497,6 +1602,16 @@
     closeSheet();
     applyLocal(id, null);
     adapter.deleteBooking(id);
+  }
+
+  function onDurations(obj) {
+    if (!obj) return;
+    Object.keys(obj).forEach(function (k) {
+      if (SVC_BY_ID[k] && typeof obj[k] === "number") DURS[k] = obj[k];
+    });
+    syncPriceInputs();
+    renderBoard();
+    if (state.editing) syncServiceButtons(state.editing.spec);
   }
 
   function onPrices(obj) {
@@ -1526,7 +1641,8 @@
      travel inside the published file. */
   var BOOK_KEY = "infinia_noubat_v1", PRICE_KEY = "infinia_prices_v1",
       CUST_KEY = "infinia_customers_v1", SLOT_KEY = "infinia_slots_v1",
-      DAY_KEY = "infinia_dayhours_v1", CLOUD_KEY = "infinia_cloud_v1",
+      DAY_KEY = "infinia_dayhours_v1", DUR_KEY = "infinia_durations_v1",
+      CLOUD_KEY = "infinia_cloud_v1",
       OUTBOX_KEY = "infinia_outbox_v1";
 
   var adapter = {
@@ -1617,6 +1733,7 @@
         var st = {};
         (res[0] || []).forEach(function (r) { st[r.key] = r.data; });
         if (st.prices) { adapter.writeJSON(PRICE_KEY, st.prices); onPrices(st.prices); }
+        if (st.durations) { adapter.writeJSON(DUR_KEY, st.durations); onDurations(st.durations); }
         if (st.slots && st.slots.length) { adapter.writeJSON(SLOT_KEY, st.slots); onDefaultSlots(st.slots); }
         if (st.dayhours) { adapter.writeJSON(DAY_KEY, st.dayhours); onDayHours(st.dayhours); }
 
@@ -1711,6 +1828,8 @@
 
       var p = adapter.readJSON(PRICE_KEY, null);
       if (p) onPrices(p);
+      var du = adapter.readJSON(DUR_KEY, null);
+      if (du) onDurations(du);
       var sl = adapter.readJSON(SLOT_KEY, null);
       if (sl && sl.length) onDefaultSlots(sl);
       onDayHours(adapter.readJSON(DAY_KEY, {}));
@@ -1777,6 +1896,11 @@
       adapter.setting("prices", PRICES);
     },
 
+    saveDurations: function () {
+      adapter.writeJSON(DUR_KEY, DURS);
+      adapter.setting("durations", DURS);
+    },
+
     saveSlots: function (list) {
       adapter.writeJSON(SLOT_KEY, list);
       adapter.setting("slots", list);
@@ -1833,6 +1957,7 @@
         bookings: adapter.readAll(),
         customers: adapter.readJSON(CUST_KEY, {}),
         prices: PRICES,
+        durations: DURS,
         slots: state.defaultSlots,
         dayHours: adapter.readJSON(DAY_KEY, {})
       });
@@ -1858,6 +1983,7 @@
       });
       adapter.writeJSON(CUST_KEY, cust);
       if (data.prices) { adapter.writeJSON(PRICE_KEY, data.prices); adapter.setting("prices", data.prices); }
+      if (data.durations) { adapter.writeJSON(DUR_KEY, data.durations); adapter.setting("durations", data.durations); }
       if (data.slots && data.slots.length) { adapter.writeJSON(SLOT_KEY, data.slots); adapter.setting("slots", data.slots); }
       if (data.dayHours) {
         var dh = adapter.readJSON(DAY_KEY, {});
@@ -1944,11 +2070,19 @@
     });
     $("tariff").addEventListener("change", function (e) {
       var el = e.target;
-      if (!el || !el.dataset || !el.dataset.price) return;
+      if (!el || !el.dataset) return;
+      if (!el.dataset.price && !el.dataset.min) return;
       if (!state.canWrite) { syncPriceInputs(); toast("دسترسی شما فقط‌خواندنی است."); return; }
-      PRICES[el.dataset.price] = parseNum(el.value);
-      el.value = priceOf(el.dataset.price).toLocaleString("en-US");
-      adapter.savePrices();
+      if (el.dataset.price) {
+        PRICES[el.dataset.price] = parseNum(el.value);
+        el.value = priceOf(el.dataset.price).toLocaleString("en-US");
+        adapter.savePrices();
+      } else {
+        DURS[el.dataset.min] = parseNum(el.value);
+        el.value = String(durOf(el.dataset.min) || "");
+        adapter.saveDurations();
+        renderBoard();
+      }
       if (state.editing) syncServiceButtons(state.editing.spec);
     });
     $("f-name").addEventListener("input", function (e) {
