@@ -74,8 +74,14 @@
   .top-inner{max-width:900px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
   .brand{font-family:"Lalezar", "Vazirmatn", sans-serif;font-size:26px;line-height:1.2;color:var(--berry);letter-spacing:.2px}
   .brand small{display:block;font-family:"Vazirmatn",sans-serif;font-size:11px;font-weight:400;color:var(--muted);letter-spacing:.06em}
-  .pill{
-    margin-inline-start:auto;font-size:11px;color:var(--muted);
+  .modebtn{
+    margin-inline-start:auto;font-family:inherit;font-size:11.5px;font-weight:600;
+    border:1px solid var(--line);border-radius:999px;padding:4px 12px;cursor:pointer;
+    background:var(--surface);color:var(--muted);white-space:nowrap;
+  }
+  .modebtn:hover{border-color:var(--berry);color:var(--berry)}
+  .modebtn.view{background:var(--berry-soft);border-color:var(--berry);color:var(--berry)}
+  .pill{font-size:11px;color:var(--muted);
     border:1px solid var(--line);border-radius:999px;padding:3px 10px;white-space:nowrap;
     display:inline-flex;align-items:center;gap:6px;
   }
@@ -148,6 +154,8 @@
   .slot.empty{border:1px dashed var(--line);background:transparent;color:var(--muted);align-items:center;justify-content:center;gap:2px}
   .slot.empty:hover{border-color:var(--spec);color:var(--spec);background:var(--spec-soft)}
   .slot.empty .plus{font-size:17px;line-height:1}
+  .slot.empty.locked{cursor:default;opacity:.7}
+  .slot.empty.locked:hover{border-color:var(--line);color:var(--muted);background:transparent}
   .slot.booked{border:1px solid var(--line);background:var(--surface);box-shadow:var(--shadow);border-inline-start:3px solid var(--spec)}
   .slot.booked:hover{border-color:var(--spec)}
   .slot .who{font-weight:600;font-size:14px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
@@ -375,7 +383,8 @@
 <body>
 <header class="top">
   <div class="top-inner">
-    <div class="brand">اینفینیا<small>دفتر نوبت سالن زیبایی · نسخهٔ ۲۰</small></div>
+    <div class="brand">اینفینیا<small>دفتر نوبت سالن زیبایی · نسخهٔ ۲۱</small></div>
+    <button type="button" class="modebtn" id="modeBtn">حالت ویرایش</button>
     <div class="pill" id="storagePill"><span class="dot" id="storageDot"></span><span id="storageText">در حال اتصال…</span></div>
   </div>
 </header>
@@ -799,6 +808,8 @@
     editing: null,
     picked: {},
     canWrite: true,
+    mayWrite: true,
+    viewOnly: false,
     customers: {},
     reminders: {},
     lang: "fa",
@@ -807,6 +818,33 @@
     dayHours: {}
   };
   var TOMORROW = keyOf(addDays(today, 1));
+  var MODE_KEY = "infinia_mode_v1";
+
+  /* View-only is a per-device preference, not a lock: a tablet on the counter
+     can show the day without anyone changing it by accident. */
+  function applyMode() {
+    state.canWrite = state.mayWrite && !state.viewOnly;
+    var btn = $("modeBtn");
+    if (btn) {
+      btn.textContent = state.viewOnly ? "فقط مشاهده" : "حالت ویرایش";
+      btn.className = "modebtn" + (state.viewOnly ? " view" : "");
+      btn.title = state.viewOnly
+        ? "این دستگاه فقط نمایش می‌دهد — برای برگرداندن بزنید"
+        : "برای اینکه این دستگاه فقط نمایش بدهد بزنید";
+    }
+    renderHeader();
+    renderBoard();
+    renderHours();
+  }
+
+  function setViewOnly(on) {
+    state.viewOnly = !!on;
+    try { localStorage.setItem(MODE_KEY, state.viewOnly ? "view" : "edit"); } catch (e) {}
+    applyMode();
+    toast(state.viewOnly
+      ? "این دستگاه روی «فقط مشاهده» رفت."
+      : "حالت ویرایش روشن شد.");
+  }
   var board;
 
   function bookingId(spec, slot) { return state.dateKey + "_" + spec + "_" + slot; }
@@ -841,7 +879,9 @@
     $("dateLatin").textContent = latin(d);
     $("dateHint").textContent = state.canWrite
       ? "برای ثبت نوبت، روی خانهٔ خالیِ زیر نام متخصص بزنید."
-      : "شما دسترسی فقط‌خواندنی دارید؛ نوبت‌ها قابل تغییر نیستند.";
+      : (state.viewOnly
+          ? "این دستگاه روی «فقط مشاهده» است؛ برای ثبت یا تغییر نوبت، دکمهٔ بالای صفحه را بزنید."
+          : "شما دسترسی فقط‌خواندنی دارید؛ نوبت‌ها قابل تغییر نیستند.");
   }
 
   function renderBoard() {
@@ -892,8 +932,10 @@
 
         if (!bk) {
           b.style.gridRow = String(i + 2);
-          b.className = "slot empty";
-          b.innerHTML = '<span class="plus">+</span><span>خالی</span>';
+          b.className = "slot empty" + (state.canWrite ? "" : " locked");
+          b.innerHTML = state.canWrite
+            ? '<span class="plus">+</span><span>خالی</span>'
+            : "<span>خالی</span>";
           b.setAttribute("aria-label", "ثبت نوبت " + sl.label + " برای " + sp.name);
         } else {
           var mins = bookingMins(bk);
@@ -1524,7 +1566,9 @@
     $("saveBtn").textContent = existing ? "ذخیرهٔ تغییرات" : "ثبت نوبت";
     $("saveBtn").disabled = !state.canWrite;
     $("deleteBtn").disabled = !state.canWrite;
-    $("formErr").textContent = state.canWrite ? "" : "دسترسی شما فقط‌خواندنی است.";
+    $("formErr").textContent = state.canWrite ? ""
+      : (state.viewOnly ? "این دستگاه روی «فقط مشاهده» است؛ برای تغییر، دکمهٔ بالای صفحه را بزنید."
+                        : "دسترسی شما فقط‌خواندنی است.");
 
     buildServiceButtons(spec);
     syncServiceButtons(spec);
@@ -2062,8 +2106,15 @@
     board = $("board");
     board.addEventListener("click", function (e) {
       var b = e.target.closest ? e.target.closest(".slot") : null;
-      if (b) openSheet(b.dataset.spec, b.dataset.slot);
+      if (!b) return;
+      var taken = !!state.items[bookingId(b.dataset.spec, b.dataset.slot)];
+      if (!state.canWrite && !taken) {
+        toast("این دستگاه روی «فقط مشاهده» است.");
+        return;
+      }
+      openSheet(b.dataset.spec, b.dataset.slot);
     });
+    $("modeBtn").addEventListener("click", function () { setViewOnly(!state.viewOnly); });
     $("days").addEventListener("click", function (e) {
       var b = e.target.closest ? e.target.closest(".day") : null;
       if (b) goDate(b.dataset.key);
@@ -2223,6 +2274,7 @@
   }
 
   setSlots(state.defaultSlots);
+  try { state.viewOnly = localStorage.getItem(MODE_KEY) === "view"; } catch (e) {}
   var okWire = step(wire, "wire");
   step(renderHours, "hours");
   var okTariff = step(renderTariff, "tariff");
@@ -2230,6 +2282,7 @@
   step(renderReminders, "reminders");
   step(updateCustCount, "customers");
   step(function () { adapter.stats(); }, "stats");
+  step(applyMode, "mode");
   if (!(okWire && okTariff && okRender)) {
     $("board").innerHTML = '<p style="grid-column:1/-1;padding:16px;text-align:center;color:var(--danger)">' +
       "صفحه درست بارگذاری نشد. یک‌بار صفحه را تازه کنید." + "</p>";
