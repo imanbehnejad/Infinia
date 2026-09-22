@@ -375,7 +375,7 @@
 <body>
 <header class="top">
   <div class="top-inner">
-    <div class="brand">اینفینیا<small>دفتر نوبت سالن زیبایی · نسخهٔ ۱۹</small></div>
+    <div class="brand">اینفینیا<small>دفتر نوبت سالن زیبایی · نسخهٔ ۲۰</small></div>
     <div class="pill" id="storagePill"><span class="dot" id="storageDot"></span><span id="storageText">در حال اتصال…</span></div>
   </div>
 </header>
@@ -1681,10 +1681,15 @@
 
     outbox: function () { return adapter.readJSON(OUTBOX_KEY, []); },
 
+    dequeue: function (table, id) {
+      var q = adapter.outbox();
+      var left = q.filter(function (x) { return !(x.table === table && x.id === id); });
+      if (left.length !== q.length) adapter.writeJSON(OUTBOX_KEY, left);
+    },
+
     enqueue: function (item) {
-      var q = adapter.outbox().filter(function (x) {
-        return !(x.table === item.table && x.id === item.id);
-      });
+      adapter.dequeue(item.table, item.id);
+      var q = adapter.outbox();
       q.push(item);
       adapter.writeJSON(OUTBOX_KEY, q);
       adapter.status(false);
@@ -1698,6 +1703,10 @@
 
     push: function (table, keyCol, id, row, remove) {
       if (!adapter.cloud) return;
+      /* A newer action replaces whatever is queued for the same row: without
+         this, a failed "save" left in the queue would be replayed after a
+         delete and the booking would reappear on the next sync. */
+      adapter.dequeue(table, id);
       var item = { table: table, keyCol: keyCol, id: id, row: row, remove: !!remove };
       adapter.send(item).then(function () { adapter.status(true); },
                               function () { adapter.enqueue(item); });
@@ -1883,8 +1892,18 @@
       var ok = adapter.writeAll(all);
       adapter.stats();
       adapter.refreshReminders();
-      adapter.push("bookings", "id", id, null, true);
-      toast(ok ? "نوبت لغو شد." : "لغو ذخیره نشد — حافظهٔ مرورگر در دسترس نیست.");
+      if (!adapter.cloud) {
+        toast(ok ? "نوبت لغو شد." : "لغو ذخیره نشد — حافظهٔ مرورگر در دسترس نیست.");
+        return;
+      }
+      adapter.dequeue("bookings", id);
+      adapter.send({ table: "bookings", keyCol: "id", id: id, remove: true }).then(function () {
+        adapter.status(true);
+        toast("نوبت لغو شد.");
+      }, function () {
+        adapter.enqueue({ table: "bookings", keyCol: "id", id: id, remove: true });
+        toast("لغو روی این دستگاه انجام شد؛ به‌محض وصل شدن روی سرور هم پاک می‌شود.");
+      });
     },
 
     setting: function (key, value) {
