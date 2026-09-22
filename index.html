@@ -383,7 +383,7 @@
 <body>
 <header class="top">
   <div class="top-inner">
-    <div class="brand">اینفینیا<small>دفتر نوبت سالن زیبایی · نسخهٔ ۲۱</small></div>
+    <div class="brand">اینفینیا<small>دفتر نوبت سالن زیبایی · نسخهٔ ۱</small></div>
     <button type="button" class="modebtn" id="modeBtn">حالت ویرایش</button>
     <div class="pill" id="storagePill"><span class="dot" id="storageDot"></span><span id="storageText">در حال اتصال…</span></div>
   </div>
@@ -457,6 +457,19 @@
     </div>
   </section>
 
+  <section class="access" id="passCard">
+    <div class="col">
+      <h2>رمز حالت ویرایش</h2>
+      <p class="lead" id="passLead">—</p>
+      <div class="linkrow">
+        <input type="password" id="passNew" placeholder="رمز تازه" autocomplete="new-password">
+        <button type="button" id="passSave">ثبت رمز</button>
+        <button type="button" id="passClear" hidden>برداشتن رمز</button>
+      </div>
+      <p class="tip">با ثبت رمز، هر دستگاهی که روی «فقط مشاهده» رفته باشد برای برگشتن به حالت ویرایش رمز می‌خواهد. رمز روی سرور ذخیره می‌شود و برای همهٔ دستگاه‌ها یکی است. این یک قفل ساده برای جلوگیری از دست‌کاری اشتباهی است، نه یک قفل امنیتی؛ کسی که فنی باشد می‌تواند دورش بزند.</p>
+    </div>
+  </section>
+
   <section class="access">
     <div class="col">
       <h2>پشتیبان و بازیابی</h2>
@@ -488,6 +501,29 @@
   </section>
 
   <p class="note" id="hoursNote">—</p>
+</div>
+
+<div class="overlay" id="passOverlay" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="passTitle" style="max-width:380px">
+    <div class="sheet-head">
+      <div>
+        <h2 id="passTitle">ورود به حالت ویرایش</h2>
+        <p>برای ثبت و تغییر نوبت، رمز سالن را وارد کنید.</p>
+      </div>
+      <button class="x" id="passClose" aria-label="بستن">✕</button>
+    </div>
+    <div class="sheet-body">
+      <div class="field">
+        <label for="passInput">رمز</label>
+        <input type="password" id="passInput" autocomplete="off">
+      </div>
+      <p class="err" id="passErr"></p>
+    </div>
+    <div class="sheet-foot">
+      <button class="btn ghost" id="passCancel">انصراف</button>
+      <button class="btn primary" id="passOk">تأیید</button>
+    </div>
+  </div>
 </div>
 
 <div class="overlay" id="overlay" hidden>
@@ -810,6 +846,7 @@
     canWrite: true,
     mayWrite: true,
     viewOnly: false,
+    passHash: "",
     customers: {},
     reminders: {},
     lang: "fa",
@@ -819,6 +856,53 @@
   };
   var TOMORROW = keyOf(addDays(today, 1));
   var MODE_KEY = "infinia_mode_v1";
+
+  /* The passcode is stored as a short hash so it is not sitting in the data in
+     plain sight. It guards against a stray tap, not against a determined
+     person — the salon asked for the first, not the second. */
+  function hashPass(str) {
+    var h = 5381, i, t = String(str || "");
+    for (i = 0; i < t.length; i++) h = ((h * 33) ^ t.charCodeAt(i)) >>> 0;
+    return "h" + h.toString(36);
+  }
+
+  function onPasscode(val) {
+    state.passHash = (val && val.hash) || "";
+    renderPassCard();
+  }
+
+  function renderPassCard() {
+    var card = $("passCard");
+    if (!card) return;
+    card.hidden = !state.canWrite;
+    var lead = $("passLead");
+    if (lead) {
+      lead.textContent = state.passHash
+        ? "رمز فعال است. هر دستگاهی که روی «فقط مشاهده» برود، برای برگشتن رمز می‌خواهد."
+        : "هنوز رمزی ثبت نشده؛ هر کسی می‌تواند حالت را عوض کند. برای قفل‌کردن، رمزی بگذارید.";
+    }
+    var clear = $("passClear");
+    if (clear) clear.hidden = !state.passHash;
+    var save = $("passSave");
+    if (save) save.textContent = state.passHash ? "تغییر رمز" : "ثبت رمز";
+  }
+
+  function askPass() {
+    $("passErr").textContent = "";
+    $("passInput").value = "";
+    $("passOverlay").hidden = false;
+    setTimeout(function () { $("passInput").focus(); }, 30);
+  }
+
+  function closePass() { $("passOverlay").hidden = true; }
+
+  function tryPass() {
+    var v = $("passInput").value;
+    if (!v) { $("passErr").textContent = "رمز را وارد کنید."; return; }
+    if (hashPass(v) !== state.passHash) { $("passErr").textContent = "رمز درست نیست."; return; }
+    closePass();
+    setViewOnly(false);
+  }
 
   /* View-only is a per-device preference, not a lock: a tablet on the counter
      can show the day without anyone changing it by accident. */
@@ -835,6 +919,7 @@
     renderHeader();
     renderBoard();
     renderHours();
+    renderPassCard();
   }
 
   function setViewOnly(on) {
@@ -1686,6 +1771,7 @@
   var BOOK_KEY = "infinia_noubat_v1", PRICE_KEY = "infinia_prices_v1",
       CUST_KEY = "infinia_customers_v1", SLOT_KEY = "infinia_slots_v1",
       DAY_KEY = "infinia_dayhours_v1", DUR_KEY = "infinia_durations_v1",
+      PASS_KEY = "infinia_pass_v1",
       CLOUD_KEY = "infinia_cloud_v1",
       OUTBOX_KEY = "infinia_outbox_v1";
 
@@ -1787,6 +1873,7 @@
         (res[0] || []).forEach(function (r) { st[r.key] = r.data; });
         if (st.prices) { adapter.writeJSON(PRICE_KEY, st.prices); onPrices(st.prices); }
         if (st.durations) { adapter.writeJSON(DUR_KEY, st.durations); onDurations(st.durations); }
+        if (st.passcode) { adapter.writeJSON(PASS_KEY, st.passcode); onPasscode(st.passcode); }
         if (st.slots && st.slots.length) { adapter.writeJSON(SLOT_KEY, st.slots); onDefaultSlots(st.slots); }
         if (st.dayhours) { adapter.writeJSON(DAY_KEY, st.dayhours); onDayHours(st.dayhours); }
 
@@ -1883,6 +1970,7 @@
       if (p) onPrices(p);
       var du = adapter.readJSON(DUR_KEY, null);
       if (du) onDurations(du);
+      onPasscode(adapter.readJSON(PASS_KEY, null));
       var sl = adapter.readJSON(SLOT_KEY, null);
       if (sl && sl.length) onDefaultSlots(sl);
       onDayHours(adapter.readJSON(DAY_KEY, {}));
@@ -1962,6 +2050,11 @@
     saveDurations: function () {
       adapter.writeJSON(DUR_KEY, DURS);
       adapter.setting("durations", DURS);
+    },
+
+    savePasscode: function (val) {
+      adapter.writeJSON(PASS_KEY, val);
+      adapter.setting("passcode", val);
     },
 
     saveSlots: function (list) {
@@ -2114,7 +2207,32 @@
       }
       openSheet(b.dataset.spec, b.dataset.slot);
     });
-    $("modeBtn").addEventListener("click", function () { setViewOnly(!state.viewOnly); });
+    $("modeBtn").addEventListener("click", function () {
+      if (state.viewOnly && state.passHash) { askPass(); return; }
+      setViewOnly(!state.viewOnly);
+    });
+    $("passOk").addEventListener("click", tryPass);
+    $("passCancel").addEventListener("click", closePass);
+    $("passClose").addEventListener("click", closePass);
+    $("passOverlay").addEventListener("click", function (e) { if (e.target === $("passOverlay")) closePass(); });
+    $("passInput").addEventListener("keydown", function (e) { if (e.key === "Enter") tryPass(); });
+    $("passSave").addEventListener("click", function () {
+      if (!state.canWrite) return;
+      var v = $("passNew").value.trim();
+      if (v.length < 4) { toast("رمز دست‌کم چهار نویسه باشد."); return; }
+      state.passHash = hashPass(v);
+      $("passNew").value = "";
+      adapter.savePasscode({ hash: state.passHash, updatedAt: new Date().toISOString() });
+      renderPassCard();
+      toast("رمز ثبت شد.");
+    });
+    $("passClear").addEventListener("click", function () {
+      if (!state.canWrite) return;
+      state.passHash = "";
+      adapter.savePasscode({ hash: "", updatedAt: new Date().toISOString() });
+      renderPassCard();
+      toast("رمز برداشته شد.");
+    });
     $("days").addEventListener("click", function (e) {
       var b = e.target.closest ? e.target.closest(".day") : null;
       if (b) goDate(b.dataset.key);
@@ -2283,6 +2401,7 @@
   step(updateCustCount, "customers");
   step(function () { adapter.stats(); }, "stats");
   step(applyMode, "mode");
+  step(renderPassCard, "passcard");
   if (!(okWire && okTariff && okRender)) {
     $("board").innerHTML = '<p style="grid-column:1/-1;padding:16px;text-align:center;color:var(--danger)">' +
       "صفحه درست بارگذاری نشد. یک‌بار صفحه را تازه کنید." + "</p>";
