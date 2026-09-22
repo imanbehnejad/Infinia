@@ -386,7 +386,7 @@
       <button type="button" class="wabtn plain" id="resetSent" hidden>برداشتن نشانه‌ها</button>
     </div>
     <div id="remindList"></div>
-    <footer>با هر بار زدن دکمه، گفتگوی مشتری بعدی با پیام آمادهٔ یادآوری باز می‌شود؛ شما فقط دکمهٔ ارسال واتس‌اپ را می‌زنید و به همین صفحه برمی‌گردید.</footer>
+    <footer>با هر بار زدن دکمه، گفتگوی مشتری بعدی با پیام آمادهٔ یادآوری باز می‌شود؛ شما فقط ارسال را می‌زنید و به همین صفحه برمی‌گردید. ردیف خودکار «فرستاده شد» علامت می‌خورد — اگر پیامی را نفرستادید، «لغو نشانه» همان ردیف را برگردانید.</footer>
   </section>
 
   <details class="tariff">
@@ -1076,7 +1076,8 @@
       var row = document.createElement("div");
       row.className = "rrow" + (bk.remindedAt ? " sent" : "");
       var acts = wa
-        ? '<a class="wabtn" target="_blank" rel="noopener" href="https://wa.me/' + wa +
+        ? '<a class="wabtn" target="_blank" rel="noopener" data-wa="' + esc(bk.__id) +
+          '" href="https://wa.me/' + wa +
           "?text=" + encodeURIComponent(reminderText(bk)) + '">واتس‌اپ</a>'
         : '<span class="tag">شماره ثبت نشده</span>';
       row.innerHTML =
@@ -1538,7 +1539,12 @@
     $("remindList").addEventListener("click", function (e) {
       var t = e.target;
       if (!t || !t.dataset) return;
-      if (t.dataset.copy) {
+      if (t.dataset.wa) {
+        /* The chat opens in WhatsApp; the row marks itself so the salon never
+           has to remember who was already messaged. "لغو نشانه" undoes it. */
+        var id = t.dataset.wa;
+        setTimeout(function () { markReminded(id, true); }, 50);
+      } else if (t.dataset.copy) {
         var bk = state.reminders[t.dataset.copy];
         if (bk) copyText(reminderText(bk));
       } else if (t.dataset.sent) {
