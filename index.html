@@ -425,7 +425,7 @@
 <body>
 <header class="top">
   <div class="top-inner">
-    <div class="brand">اینفینیا<small>دفتر نوبت سالن زیبایی · نسخهٔ ۸</small></div>
+    <div class="brand">اینفینیا<small>دفتر نوبت سالن زیبایی · نسخهٔ ۹</small></div>
     <button type="button" class="modebtn" id="modeBtn">حالت ویرایش</button>
     <div class="pill" id="storagePill"><span class="dot" id="storageDot"></span><span id="storageText">در حال اتصال…</span></div>
   </div>
@@ -826,6 +826,43 @@
      should be written in; the salon can always override it by hand. */
   function detectLang(name) { return /[؀-ۿ]/.test(String(name || "")) ? "fa" : "tr"; }
   function phoneDigits(p) { return toLatinDigits(p || "").replace(/[^0-9]/g, ""); }
+
+  /* The same customer is written a dozen ways: +90 555…، 0555…، 00905 55…
+     Only the last ten digits are really the person, so that is what we compare
+     on — otherwise searching «۰۵۵۵…» misses a contact saved as «+۹۰۵۵۵…». */
+  function phoneTail(p) {
+    var d = phoneDigits(p);
+    if (d.slice(0, 2) === "00") d = d.slice(2);
+    if (d.length > 10) d = d.slice(-10);
+    return d.replace(/^0+/, "");
+  }
+
+  /* Names come from the phone book in every spelling there is: ي vs ی, ك vs ک,
+     Ayşe vs Ayse, half-spaces, Arabic digits. Folding both the name and what is
+     typed makes the search find the person however either was written. */
+  var FOLD_PAIRS = { "ي": "ی", "ى": "ی", "ئ": "ی", "ك": "ک", "ة": "ه", "أ": "ا", "إ": "ا", "آ": "ا", "ؤ": "و" };
+  function foldText(s) {
+    var t = toLatinDigits(String(s == null ? "" : s));
+    t = t.replace(/[​-‏‪-‮]/g, "")
+         .replace(/[يىئكةأإآؤ]/g, function (ch) { return FOLD_PAIRS[ch] || ch; });
+    try { t = t.normalize("NFKD").replace(/[̀-ͯ]/g, ""); } catch (e) {}
+    t = t.toLowerCase().replace(/ı/g, "i").replace(/[̇]/g, "");
+    return t.replace(/\s+/g, " ").trim();
+  }
+
+  /* Does this customer answer to what was typed — by name or by number? */
+  function custMatches(c, q) {
+    var fq = foldText(q);
+    if (!fq) return true;
+    if (foldText(c.name).indexOf(fq) !== -1) return true;
+    var d = phoneDigits(q);
+    if (d.length > 2) {
+      if (phoneDigits(c.phone).indexOf(d) !== -1) return true;
+      var tail = phoneTail(q);
+      if (tail && phoneTail(c.phone).indexOf(tail) !== -1) return true;
+    }
+    return false;
+  }
   /* 05… is a Turkish mobile, 09… an Iranian one; both are written with a
      leading zero locally but WhatsApp needs the country code. */
   function waNumber(p) {
@@ -882,7 +919,7 @@
     return clean;
   }
   function custKey(name, phone) {
-    var d = phoneDigits(phone);
+    var d = phoneTail(phone);
     if (d) return "p" + d;
     var s = String(name || "").trim(), h = 0, i;
     for (i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
@@ -1440,11 +1477,16 @@
     var host = $("suggest");
     q = String(q || "").trim().toLowerCase();
     if (q.length < 2) { hideSuggest(); return; }
-    var digits = phoneDigits(q);
-    var hits = customerList().filter(function (c) {
-      return c.name.toLowerCase().indexOf(q) !== -1 ||
-             (digits.length > 2 && phoneDigits(c.phone).indexOf(digits) !== -1);
-    }).slice(0, 8);
+    var fq = foldText(q);
+    var hits = customerList().filter(function (c) { return custMatches(c, q); });
+    /* the ones whose name actually begins with what was typed come first */
+    hits.sort(function (a, b) {
+      var sa = foldText(a.name).indexOf(fq) === 0 ? 0 : 1;
+      var sb = foldText(b.name).indexOf(fq) === 0 ? 0 : 1;
+      if (sa !== sb) return sa - sb;
+      return String(a.name).localeCompare(String(b.name), "fa");
+    });
+    hits = hits.slice(0, 12);
     if (!hits.length) { hideSuggest(); return; }
     host.textContent = "";
     hits.forEach(function (c) {
@@ -1478,8 +1520,21 @@
     $("f-phone").focus();
   }
 
+  /* Reuse the record we already hold for this number, whatever shape it was
+     saved in, so the same person never splits into two entries. */
+  function custIdFor(name, phone) {
+    var tail = phoneTail(phone);
+    if (tail) {
+      var ids = Object.keys(state.customers);
+      for (var i = 0; i < ids.length; i++) {
+        if (phoneTail((state.customers[ids[i]] || {}).phone) === tail) return ids[i];
+      }
+    }
+    return custKey(name, phone);
+  }
+
   function rememberCustomer(name, phone, lang) {
-    var id = custKey(name, phone);
+    var id = custIdFor(name, phone);
     var rec = { name: name, phone: phone || "", lang: lang, updatedAt: new Date().toISOString() };
     rec.id = id;
     state.customers[id] = rec;
@@ -1536,14 +1591,11 @@
     if (!host) return;
     var box = $("custSearch");
     var q = String((box && box.value) || "").trim().toLowerCase();
-    var digits = phoneDigits(q);
     var list = customerList();
-    if (q) {
-      list = list.filter(function (c) {
-        return c.name.toLowerCase().indexOf(q) !== -1 ||
-               (digits.length > 2 && phoneDigits(c.phone).indexOf(digits) !== -1);
-      });
-    }
+    if (q) list = list.filter(function (c) { return custMatches(c, q); });
+    list = list.slice().sort(function (a, b) {
+      return String(a.name).localeCompare(String(b.name), "fa");
+    });
     var shown = list.slice(0, 40);
     if (!shown.length) {
       host.innerHTML = '<p class="cempty">' +
@@ -1570,22 +1622,38 @@
   }
 
   /* ---------- importing the phone's contacts ---------- */
+  /* A whole phone book at once: the records are written in one go rather than
+     one save per contact, so importing a thousand people is a single write and
+     a handful of requests instead of a thousand that half fail. */
   function addCustomers(list) {
-    var added = 0, updated = 0, skipped = 0;
+    var added = 0, updated = 0, skipped = 0, batch = {}, byTail = {};
+    Object.keys(state.customers).forEach(function (id) {
+      var t = phoneTail((state.customers[id] || {}).phone);
+      if (t && !byTail[t]) byTail[t] = id;
+    });
     list.forEach(function (c) {
       var name = String(c.name || "").trim();
       var phone = String(c.phone || "").trim();
       if (!name && !phone) { skipped++; return; }
       if (!name) name = phone;
-      var id = custKey(name, phone);
+      var tail = phoneTail(phone);
+      var id = (tail && byTail[tail]) || custKey(name, phone);
       var before = state.customers[id];
-      if (before && before.name === name && phoneDigits(before.phone) === phoneDigits(phone)) {
+      if (before && foldText(before.name) === foldText(name) && phoneTail(before.phone) === tail) {
         skipped++;
         return;
       }
       if (before) updated++; else added++;
-      rememberCustomer(name, phone, (before && before.lang) || detectLang(name));
+      var rec = {
+        id: id, name: name, phone: phone,
+        lang: (before && before.lang) || detectLang(name),
+        updatedAt: new Date().toISOString()
+      };
+      state.customers[id] = rec;
+      batch[id] = { name: rec.name, phone: rec.phone, lang: rec.lang, updatedAt: rec.updatedAt };
+      if (tail) byTail[tail] = id;
     });
+    if (added || updated) adapter.saveCustomers(batch);
     updateCustCount();
     if (!added && !updated) { toast(skipped ? "همه از قبل در دفترچه بودند." : "مخاطبی انتخاب نشد."); return; }
     toast(fa(added) + " مخاطب تازه" + (updated ? " · " + fa(updated) + " به‌روز شد" : "") +
@@ -1641,31 +1709,92 @@
     }, function () { toast("دسترسی به مخاطبین انجام نشد."); });
   }
 
+  /* Android and older phones write names as quoted-printable — «=D9=85=D8=B1…»
+     instead of «مریم». Left undecoded the contact lands in the book as
+     gibberish and no search ever finds it, which is exactly how a phone book
+     ends up showing some people and not others. */
+  function decodeQP(s) {
+    var esc = "", i = 0, ch, hex;
+    while (i < s.length) {
+      ch = s.charAt(i);
+      if (ch === "=" && /^[0-9A-Fa-f]{2}$/.test(s.substr(i + 1, 2))) {
+        esc += "%" + s.substr(i + 1, 2);
+        i += 3;
+      } else {
+        esc += encodeURIComponent(ch);
+        i++;
+      }
+    }
+    try { return decodeURIComponent(esc); } catch (e) { return s.replace(/=[0-9A-Fa-f]{2}/g, ""); }
+  }
+
   /* A vCard file is how every phone, iPhone included, hands out contacts. */
   function parseVcf(text) {
-    var out = [], cur = null;
-    var lines = String(text).replace(/\r\n[ \t]/g, "").replace(/\n[ \t]/g, "").replace(/\r/g, "").split("\n");
-    lines.forEach(function (line) {
-      var up = line.toUpperCase();
-      if (up.indexOf("BEGIN:VCARD") === 0) { cur = { name: "", phone: "" }; return; }
-      if (up.indexOf("END:VCARD") === 0) {
-        if (cur && (cur.name || cur.phone)) out.push(cur);
-        cur = null;
+    var out = [], cur = null, pending = null;
+    var body = String(text).replace(/\r\n/g, "\n").replace(/\r/g, "\n").replace(/\n[ \t]/g, "");
+    body.split("\n").forEach(function (line) {
+      /* a quoted-printable value may be cut across lines, each ending in "=" */
+      if (pending !== null) {
+        var more = /=$/.test(line);
+        pending += more ? line.slice(0, -1) : line;
+        if (more) return;
+        line = pending;
+        pending = null;
+      } else if (/=$/.test(line) && /ENCODING=QUOTED-PRINTABLE/i.test(line)) {
+        pending = line.slice(0, -1);
         return;
       }
+      readVcfLine(line);
+    });
+    if (cur) closeCard();
+    return out;
+
+    function closeCard() {
+      var name = (cur.fn || cur.n || "").trim();
+      var seen = {}, nums = [];
+      cur.tels.forEach(function (t) {
+        var k = phoneTail(t.v) || phoneDigits(t.v);
+        if (!k || seen[k]) return;
+        seen[k] = true;
+        nums.push(t);
+      });
+      /* a mobile is what WhatsApp needs: when the contact has one, the office
+         and home lines are left out rather than cluttering the book */
+      var cells = nums.filter(function (t) { return t.cell; });
+      if (cells.length) nums = cells;
+      if (!nums.length) {
+        if (name) out.push({ name: name, phone: "" });
+      } else {
+        /* several numbers means several ways to reach her; keep them all rather
+           than guess wrong and leave the salon with a number that never rings */
+        nums.slice(0, 3).forEach(function (t) { out.push({ name: name || t.v, phone: t.v }); });
+      }
+      cur = null;
+    }
+
+    function readVcfLine(line) {
+      var up = line.toUpperCase();
+      if (up.indexOf("BEGIN:VCARD") === 0) { cur = { fn: "", n: "", tels: [] }; return; }
+      if (up.indexOf("END:VCARD") === 0) { if (cur) closeCard(); return; }
       if (!cur) return;
       var at = line.indexOf(":");
       if (at < 0) return;
-      var val = line.slice(at + 1).replace(/\\,/g, ",").replace(/\\;/g, ";").trim();
-      if (up.indexOf("FN") === 0) cur.name = val;
-      else if (up.indexOf("N:") === 0 || up.indexOf("N;") === 0) {
-        if (!cur.name) {
+      var head = line.slice(0, at).toUpperCase(), val = line.slice(at + 1);
+      if (head.indexOf("ENCODING=QUOTED-PRINTABLE") !== -1) val = decodeQP(val);
+      val = val.replace(/\\n/gi, " ").replace(/\\,/g, ",").replace(/\\;/g, ";").trim();
+      if (!val) return;
+      /* iPhone writes «item1.TEL;type=CELL» — the property is the last piece */
+      var prop = head.split(";")[0].split(".").pop();
+      if (prop === "FN") { if (!cur.fn) cur.fn = val; }
+      else if (prop === "N") {
+        if (!cur.n) {
           var parts = val.split(";");
-          cur.name = ((parts[1] || "") + " " + (parts[0] || "")).trim();
+          cur.n = ((parts[1] || "") + " " + (parts[0] || "")).replace(/\s+/g, " ").trim();
         }
-      } else if (up.indexOf("TEL") === 0 && !cur.phone) cur.phone = val;
-    });
-    return out;
+      } else if (prop === "TEL") {
+        cur.tels.push({ v: val, cell: /CELL|MOBILE|IPHONE|GSM|HANDY/.test(head) });
+      }
+    }
   }
 
   function importVcfFiles(files) {
@@ -1675,11 +1804,19 @@
       var r = new FileReader();
       r.onload = function () {
         try { list = list.concat(parseVcf(String(r.result))); } catch (e) {}
-        if (--left === 0) addCustomers(list);
+        if (--left === 0) finish();
       };
-      r.onerror = function () { if (--left === 0) addCustomers(list); };
+      r.onerror = function () { if (--left === 0) finish(); };
       r.readAsText(f);
     });
+
+    function finish() {
+      if (!list.length) {
+        toast("از این فایل مخاطبی خوانده نشد — فایل باید vCard (پسوند .vcf) باشد.");
+        return;
+      }
+      addCustomers(list);
+    }
   }
 
   /* ---------- tomorrow's WhatsApp reminders ---------- */
@@ -2129,6 +2266,45 @@
                               function () { adapter.enqueue(item); });
     },
 
+    /* A phone book arrives all at once. One request per contact means hundreds
+       of parallel requests, of which a good share fail — so they go up in
+       batches, and only a batch that genuinely fails waits in the outbox. */
+    pushMany: function (table, keyCol, rows) {
+      if (!adapter.cloud || !rows.length) return;
+      var i = 0, size = 200;
+      function next() {
+        if (i >= rows.length) { adapter.status(true); return; }
+        var chunk = rows.slice(i, i + size);
+        i += size;
+        adapter.api(table, { method: "POST", prefer: "resolution=merge-duplicates", body: chunk })
+          .then(next, function () {
+            chunk.forEach(function (row) {
+              adapter.enqueue({ table: table, keyCol: keyCol, id: row[keyCol], row: row, remove: false });
+            });
+            next();
+          });
+      }
+      next();
+    },
+
+    /* The server hands back at most a page at a time; walk them all, or a book
+       of more than a thousand people would silently lose its tail. */
+    fetchCustomers: function () {
+      var out = [], size = 0;
+      function page(from) {
+        return adapter.api("customers?select=id,data&order=id&limit=1000&offset=" + from)
+          .then(function (rows) {
+            rows = rows || [];
+            out = out.concat(rows);
+            if (!size) size = rows.length;
+            /* a short page means the end; a full one means ask for the next */
+            if (rows.length && rows.length === size && out.length < 20000) return page(from + rows.length);
+            return out;
+          });
+      }
+      return page(0);
+    },
+
     /* Anything that failed while the salon was offline waits here and goes out
        on the next sync, so a booking taken on a bad connection is never lost. */
     flush: function () {
@@ -2152,7 +2328,7 @@
       return adapter.flush().then(function () {
         return Promise.all([
           adapter.api("settings?select=key,data"),
-          adapter.api("customers?select=id,data&limit=1000"),
+          adapter.fetchCustomers(),
           adapter.api("bookings?select=id,data&or=(date.eq." + state.dateKey + ",date.eq." + TOMORROW + ")")
         ]);
       }).then(function (res) {
@@ -2164,10 +2340,16 @@
         if (st.slots && st.slots.length) { adapter.writeJSON(SLOT_KEY, st.slots); onDefaultSlots(st.slots); }
         if (st.dayhours) { adapter.writeJSON(DAY_KEY, st.dayhours); onDayHours(st.dayhours); }
 
-        var cust = {};
-        (res[1] || []).forEach(function (r) { cust[r.id] = r.data; });
+        /* Merge, never replace: a sync must not wipe contacts this device has
+           that have not reached the server yet — instead it sends them up. */
+        var cust = adapter.readJSON(CUST_KEY, {}), onServer = {};
+        (res[1] || []).forEach(function (r) { cust[r.id] = r.data; onServer[r.id] = true; });
         adapter.writeJSON(CUST_KEY, cust);
         onCustomers(cust);
+        var behind = Object.keys(cust)
+          .filter(function (id) { return !onServer[id]; })
+          .map(function (id) { return { id: id, data: cust[id] }; });
+        if (behind.length) adapter.pushMany("customers", "id", behind);
 
         var all = adapter.readAll();
         Object.keys(all).forEach(function (id) {
@@ -2422,9 +2604,23 @@
     saveCustomer: function (id, rec) {
       var all = adapter.readJSON(CUST_KEY, {});
       all[id] = rec;
-      adapter.writeJSON(CUST_KEY, all);
+      if (!adapter.writeJSON(CUST_KEY, all)) toast("دفترچهٔ تلفن ذخیره نشد — حافظهٔ مرورگر در دسترس نیست.");
       adapter.stats();
       adapter.push("customers", "id", id, { id: id, data: rec });
+    },
+
+    saveCustomers: function (map) {
+      var all = adapter.readJSON(CUST_KEY, {}), rows = [];
+      Object.keys(map).forEach(function (id) {
+        all[id] = map[id];
+        rows.push({ id: id, data: map[id] });
+      });
+      if (!adapter.writeJSON(CUST_KEY, all)) {
+        toast("دفترچهٔ تلفن ذخیره نشد — حافظهٔ مرورگر پر است.");
+        return;
+      }
+      adapter.stats();
+      adapter.pushMany("customers", "id", rows);
     },
 
     exportAll: function () {
