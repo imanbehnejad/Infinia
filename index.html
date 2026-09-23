@@ -425,7 +425,7 @@
 <body>
 <header class="top">
   <div class="top-inner">
-    <div class="brand">اینفینیا<small>دفتر نوبت سالن زیبایی · نسخهٔ ۹</small></div>
+    <div class="brand">اینفینیا<small>دفتر نوبت سالن زیبایی · نسخهٔ ۱۰</small></div>
     <button type="button" class="modebtn" id="modeBtn">حالت ویرایش</button>
     <div class="pill" id="storagePill"><span class="dot" id="storageDot"></span><span id="storageText">در حال اتصال…</span></div>
   </div>
@@ -944,7 +944,8 @@
     lang: "fa",
     langTouched: false,
     defaultSlots: DEFAULT_SLOTS.slice(),
-    dayHours: {}
+    dayHours: {},
+    dayHoursAt: {}
   };
   var TOMORROW = keyOf(addDays(today, 1));
   var TODAY_KEY = keyOf(today);
@@ -1396,14 +1397,17 @@
   /* Saving hours: `scope` is "day" for this date only, "all" for the default. */
   function applySlots(list, scope) {
     var clean = setSlots(list);
+    var now = new Date().toISOString();
     if (scope === "all") {
       state.defaultSlots = clean;
       delete state.dayHours[state.dateKey];
+      state.dayHoursAt[state.dateKey] = now;
       adapter.saveSlots(clean);
-      adapter.deleteDayHours(state.dateKey);
+      adapter.deleteDayHours(state.dateKey, now);
     } else if (scope === "day") {
       state.dayHours[state.dateKey] = clean;
-      adapter.saveDayHours(state.dateKey, clean);
+      state.dayHoursAt[state.dateKey] = now;
+      adapter.saveDayHours(state.dateKey, clean, now);
     }
     renderHours();
     renderBoard();
@@ -1416,13 +1420,27 @@
     applyEffectiveSlots();
   }
 
+  /* Each customised day carries the moment it was set. That stamp is what lets
+     two devices merge their hours instead of the last one to sync wiping the
+     other's work — and what stops a sync from undoing a change that has not
+     finished uploading yet. A day put back on the default hours is kept as an
+     empty entry (a tombstone) so the other devices learn about it too. */
+  function dayHoursEntry(v) {
+    if (!v) return null;
+    if (Object.prototype.toString.call(v) === "[object Array]") return { list: v, at: "" };
+    return { list: v.list || [], at: v.at || v.updatedAt || "" };
+  }
+
   function onDayHours(map) {
-    var next = {};
+    var next = {}, at = {};
     Object.keys(map || {}).forEach(function (k) {
-      var list = (map[k] && map[k].list) || map[k];
-      if (list && list.length) next[k] = list;
+      var e = dayHoursEntry(map[k]);
+      if (!e) return;
+      at[k] = e.at;
+      if (e.list && e.list.length) next[k] = e.list;
     });
     state.dayHours = next;
+    state.dayHoursAt = at;
     applyEffectiveSlots();
     renderDays();
   }
@@ -2201,6 +2219,9 @@
 
   var adapter = {
     cloud: null, timer: null, busy: false, lastSync: "",
+    /* settings whose upload has not been confirmed yet: while a key is in
+       here, a sync must not overwrite it with the server's older copy */
+    pending: {},
 
     readJSON: function (key, fallback) {
       try { return JSON.parse(localStorage.getItem(key) || "null") || fallback; }
@@ -2317,7 +2338,10 @@
           return Promise.resolve(q.length - left.length);
         }
         var it = q[i++];
-        return adapter.send(it).then(next, function () { left.push(it); return next(); });
+        return adapter.send(it).then(function () {
+          if (it.table === "settings") delete adapter.pending[it.id];
+          return next();
+        }, function () { left.push(it); return next(); });
       }
       return next();
     },
@@ -2334,11 +2358,22 @@
       }).then(function (res) {
         var st = {};
         (res[0] || []).forEach(function (r) { st[r.key] = r.data; });
-        if (st.prices) { adapter.writeJSON(PRICE_KEY, st.prices); onPrices(st.prices); }
-        if (st.durations) { adapter.writeJSON(DUR_KEY, st.durations); onDurations(st.durations); }
-        if (st.passcode) { adapter.writeJSON(PASS_KEY, st.passcode); onPasscode(st.passcode); }
-        if (st.slots && st.slots.length) { adapter.writeJSON(SLOT_KEY, st.slots); onDefaultSlots(st.slots); }
-        if (st.dayhours) { adapter.writeJSON(DAY_KEY, st.dayhours); onDayHours(st.dayhours); }
+        function fresh(key) { return !adapter.pending[key] && st[key]; }
+        if (fresh("prices")) { adapter.writeJSON(PRICE_KEY, st.prices); onPrices(st.prices); }
+        if (fresh("durations")) { adapter.writeJSON(DUR_KEY, st.durations); onDurations(st.durations); }
+        if (fresh("passcode")) { adapter.writeJSON(PASS_KEY, st.passcode); onPasscode(st.passcode); }
+        if (fresh("slots") && st.slots.length) { adapter.writeJSON(SLOT_KEY, st.slots); onDefaultSlots(st.slots); }
+        /* Working hours merge day by day: the newer stamp wins for each date,
+           so a change made here and a change made on the phone both survive. */
+        var localDays = adapter.readJSON(DAY_KEY, {});
+        var mergedDays = adapter.pending.dayhours
+          ? localDays
+          : adapter.mergeDayHours(localDays, st.dayhours || {});
+        adapter.writeJSON(DAY_KEY, mergedDays);
+        onDayHours(mergedDays);
+        if (!adapter.pending.dayhours && adapter.stamp(mergedDays) !== adapter.stamp(st.dayhours || {})) {
+          adapter.setting("dayhours", mergedDays);
+        }
 
         /* Merge, never replace: a sync must not wipe contacts this device has
            that have not reached the server yet — instead it sends them up. */
@@ -2372,6 +2407,32 @@
         adapter.status(false);
         if (!quiet) toast("اتصال برقرار نشد؛ آدرس و کلید را بررسی کنید.");
       });
+    },
+
+    stamp: function (o) { try { return JSON.stringify(o); } catch (e) { return ""; } },
+
+    /* Take each date from whichever side changed it last. A day that was put
+       back on the default hours is kept as an empty entry so the other devices
+       see the removal instead of resurrecting it. */
+    mergeDayHours: function (mine, theirs) {
+      var out = {}, keys = {};
+      Object.keys(mine || {}).forEach(function (k) { keys[k] = true; });
+      Object.keys(theirs || {}).forEach(function (k) { keys[k] = true; });
+      Object.keys(keys).forEach(function (k) {
+        var a = adapter.dayEntry(mine[k]), b = adapter.dayEntry(theirs[k]);
+        if (!a) { out[k] = b; return; }
+        if (!b) { out[k] = a; return; }
+        /* with no stamp on either side, this device's copy is the safer bet */
+        out[k] = (b.at && b.at > (a.at || "")) ? b : a;
+      });
+      Object.keys(out).forEach(function (k) { if (!out[k]) delete out[k]; });
+      return out;
+    },
+
+    dayEntry: function (v) {
+      if (!v) return null;
+      if (Object.prototype.toString.call(v) === "[object Array]") return { list: v, at: "" };
+      return { list: v.list || [], at: v.at || v.updatedAt || "" };
     },
 
     status: function (ok) {
@@ -2540,7 +2601,14 @@
     },
 
     setting: function (key, value) {
-      adapter.push("settings", "key", key, { key: key, data: value });
+      if (!adapter.cloud) return;
+      adapter.pending[key] = true;
+      adapter.dequeue("settings", key);
+      var item = { table: "settings", keyCol: "key", id: key, row: { key: key, data: value }, remove: false };
+      adapter.send(item).then(function () {
+        delete adapter.pending[key];
+        adapter.status(true);
+      }, function () { adapter.enqueue(item); });
     },
 
     savePrices: function () {
@@ -2563,16 +2631,16 @@
       adapter.setting("slots", list);
     },
 
-    saveDayHours: function (dateKey, list) {
+    saveDayHours: function (dateKey, list, at) {
       var all = adapter.readJSON(DAY_KEY, {});
-      all[dateKey] = list;
-      adapter.writeJSON(DAY_KEY, all);
+      all[dateKey] = { list: list, at: at || new Date().toISOString() };
+      if (!adapter.writeJSON(DAY_KEY, all)) toast("ساعات این روز ذخیره نشد — حافظهٔ مرورگر در دسترس نیست.");
       adapter.setting("dayhours", all);
     },
 
-    deleteDayHours: function (dateKey) {
+    deleteDayHours: function (dateKey, at) {
       var all = adapter.readJSON(DAY_KEY, {});
-      delete all[dateKey];
+      all[dateKey] = { list: [], at: at || new Date().toISOString() };
       adapter.writeJSON(DAY_KEY, all);
       adapter.setting("dayhours", all);
     },
