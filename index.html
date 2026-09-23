@@ -425,7 +425,7 @@
 <body>
 <header class="top">
   <div class="top-inner">
-    <div class="brand">اینفینیا<small>دفتر نوبت سالن زیبایی · نسخهٔ ۷</small></div>
+    <div class="brand">اینفینیا<small>دفتر نوبت سالن زیبایی · نسخهٔ ۸</small></div>
     <button type="button" class="modebtn" id="modeBtn">حالت ویرایش</button>
     <div class="pill" id="storagePill"><span class="dot" id="storageDot"></span><span id="storageText">در حال اتصال…</span></div>
   </div>
@@ -445,7 +445,7 @@
     <div class="stat"><b id="stCount">۰</b><span>نوبت ثبت‌شده</span></div>
     <div class="stat"><b id="stFree">۰</b><span>جای خالی</span></div>
     <div class="stat"><b id="stDone">۰</b><span>انجام‌شده</span></div>
-    <div class="stat money"><b id="stSum">۰</b><span>جمع مبلغ (لیر)</span></div>
+    <div class="stat money" id="sumTile"><b id="stSum">۰</b><span>جمع مبلغ (لیر)</span></div>
     <div class="stat total"><b id="stTotal">۰</b><span>نوبت‌های ثبت‌شده (از امروز)</span></div>
   </div>
 
@@ -608,7 +608,7 @@
         <label>خدمات سفارش‌داده‌شده</label>
         <div id="svcHost" style="display:flex;flex-direction:column;gap:12px"></div>
       </div>
-      <div class="totalrow">جمع خدمات انتخاب‌شده <span class="dur-hint" id="durOut"></span><b id="totalOut">۰</b></div>
+      <div class="totalrow"><span id="totalLabel">جمع خدمات انتخاب‌شده</span> <span class="dur-hint" id="durOut"></span><b id="totalOut">۰</b></div>
       <div class="field">
         <label for="f-note">یادداشت <span style="opacity:.7">(اختیاری)</span></label>
         <textarea id="f-note" placeholder="مثلاً: طرح ناخن، رنگ لاک، حساسیت پوستی، تخفیف معرفی…"></textarea>
@@ -985,6 +985,12 @@
       var el = $(id);
       if (el) el.hidden = hide;
     });
+    /* Money is the salon's business, not the staff's: in view-only the day's
+       takings, each booking's price and the form's total all stay hidden. */
+    ["sumTile", "totalLabel", "totalOut"].forEach(function (id) {
+      var el = $(id);
+      if (el) el.hidden = hide;
+    });
     renderHeader();
     renderBoard();
     renderHours();
@@ -1153,7 +1159,7 @@
             (dur ? '<span class="dur">' + esc(dur) + "</span>" : "") + "</span>" +
             '<span class="chips">' + (chips || '<span class="chip">بدون خدمت</span>') + "</span>" +
             '<span class="foot">' + (bk.phone && state.canWrite ? esc(faDigits(bk.phone)) : "") +
-            '<span class="amount">' + fa(bk.amount || 0) + " لیر</span></span>";
+            (state.canWrite ? '<span class="amount">' + fa(bk.amount || 0) + " لیر</span>" : "") + "</span>";
           b.setAttribute("aria-label", "نوبت " + bk.name + " در " + whenLabel(bk, cell.sl) + " نزد " + sp.name);
         }
         frag.appendChild(b);
