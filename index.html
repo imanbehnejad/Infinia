@@ -425,7 +425,7 @@
 <body>
 <header class="top">
   <div class="top-inner">
-    <div class="brand">اینفینیا<small>دفتر نوبت سالن زیبایی · نسخهٔ ۱۱</small></div>
+    <div class="brand">اینفینیا<small>دفتر نوبت سالن زیبایی · نسخهٔ ۱۲</small></div>
     <button type="button" class="modebtn" id="modeBtn">حالت ویرایش</button>
     <div class="pill" id="storagePill"><span class="dot" id="storageDot"></span><span id="storageText">در حال اتصال…</span></div>
   </div>
@@ -442,11 +442,11 @@
   <p class="sub"><span class="jal-line" id="dateJalali">—</span> · <span class="latin" id="dateLatin">—</span> · <span id="dateHint">برای ثبت نوبت، روی خانهٔ خالیِ زیر نام متخصص بزنید.</span></p>
 
   <div class="stats">
-    <div class="stat"><b id="stCount">۰</b><span>نوبت ثبت‌شده</span></div>
-    <div class="stat"><b id="stFree">۰</b><span>جای خالی</span></div>
+    <div class="stat"><b id="stCount">۰</b><span>نوبت ناخن</span></div>
+    <div class="stat"><b id="stFree">۰</b><span>جای خالی ناخن</span></div>
     <div class="stat"><b id="stDone">۰</b><span>انجام‌شده</span></div>
     <div class="stat money" id="sumTile"><b id="stSum">۰</b><span>جمع مبلغ (لیر)</span></div>
-    <div class="stat total"><b id="stTotal">۰</b><span>نوبت‌های ثبت‌شده (از امروز)</span></div>
+    <div class="stat total"><b id="stTotal">۰</b><span>نوبت‌های ناخن (از امروز)</span></div>
   </div>
 
   <div class="board-scroll"><div class="board" id="board"></div></div>
@@ -636,11 +636,12 @@
   var DEFAULT_SLOTS = ["0930", "1130", "1330", "1530", "1730"];
   var SLOTS = [];
   var SPECIALISTS = [
+    /* nail:true — the chairs the occupancy figures are counted on */
     { id: "bahar",  name: "بهار جون",  tr: "Bahar",  initial: "ب", role: "خدمات دست",
-      groups: ["hand_care", "hand_nail", "hand_remove", "design"],
+      groups: ["hand_care", "hand_nail", "hand_remove", "design"], nail: true,
       color: "var(--berry)", soft: "var(--berry-soft)" },
     { id: "shirin", name: "شیرین جون", tr: "Şirin",  initial: "ش", role: "خدمات دست و پا",
-      groups: ["hand_care", "hand_nail", "hand_remove", "design", "foot"],
+      groups: ["hand_care", "hand_nail", "hand_remove", "design", "foot"], nail: true,
       color: "var(--teal)", soft: "var(--teal-soft)" },
     { id: "mahsa",  name: "مهسا جون",  tr: "Mahsa",  initial: "م", role: "لیزر",
       groups: ["laser_w", "laser_m"],
@@ -950,6 +951,10 @@
   var TOMORROW = keyOf(addDays(today, 1));
   var TODAY_KEY = keyOf(today);
 
+  var NAIL_SPECS = SPECIALISTS.filter(function (sp) { return sp.nail; });
+  var NAIL_IDS = NAIL_SPECS.map(function (sp) { return sp.id; });
+  function isNailSpec(id) { return NAIL_IDS.indexOf(id) !== -1; }
+
   /* Bookings still ahead of us: today and the days after. Days already gone
      are not counted — the tile answers "how much is booked", not history. */
   function setTotalCount(n) {
@@ -1182,9 +1187,10 @@
           b.setAttribute("aria-label", "ثبت نوبت " + cell.sl.label + " برای " + sp.name);
         } else {
           var mins = bookingMins(bk);
-          used += cell.span;
-          count++;
-          if (bk.done) done++;
+          /* Occupancy is measured on the nail chairs only — the salon reads
+             these figures to know how full بهار and شیرین are. The money
+             below is the whole day's takings, every specialist included. */
+          if (sp.nail) { used += cell.span; count++; if (bk.done) done++; }
           sum += Number(bk.amount || 0);
           var chips = (bk.services || []).map(function (id) {
             return SVC_BY_ID[id] ? '<span class="chip">' + esc(SVC_BY_ID[id].name) + "</span>" : "";
@@ -1207,7 +1213,7 @@
     board.appendChild(frag);
     updateScrollHint();
     $("stCount").textContent = fa(count);
-    $("stFree").textContent = fa(Math.max(0, SLOTS.length * SPECIALISTS.length - used));
+    $("stFree").textContent = fa(Math.max(0, SLOTS.length * NAIL_SPECS.length - used));
     $("stDone").textContent = fa(done);
     $("stSum").textContent = fa(sum);
   }
@@ -2472,10 +2478,12 @@
       Object.keys(all).forEach(function (id) {
         var rec = all[id] || {};
         var dk = rec.date || String(id).split("_")[0];
-        if (dk >= TODAY_KEY) local++;
+        var sp = rec.spec || String(id).split("_")[1];
+        if (dk >= TODAY_KEY && isNailSpec(sp)) local++;
       });
       if (!adapter.cloud) { setTotalCount(local); return; }
-      fetch(adapter.cloud.url + "/rest/v1/bookings?select=id&date=gte." + encodeURIComponent(TODAY_KEY), {
+      fetch(adapter.cloud.url + "/rest/v1/bookings?select=id&date=gte." + encodeURIComponent(TODAY_KEY) +
+            "&data->>spec=in.(" + NAIL_IDS.join(",") + ")", {
         method: "GET",
         headers: {
           "apikey": adapter.cloud.key,
