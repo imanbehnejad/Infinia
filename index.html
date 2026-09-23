@@ -37,7 +37,7 @@
     --ok:#3E7A4F;
     --danger:#A33A2E;
     --timew:52px;
-    --tcolw:82px;
+    --tcolw:76px;
     --shadow:0 1px 2px rgba(43,32,38,.06), 0 8px 24px -16px rgba(43,32,38,.35);
   }
   @media (prefers-color-scheme: dark){
@@ -65,14 +65,14 @@
     font-family:"Vazirmatn", system-ui, -apple-system, "Segoe UI", sans-serif;
     font-size:15px;line-height:1.7;margin:0;
   }
-  .wrap{max-width:900px;margin:0 auto;padding:0 16px;padding-block:0 40px}
+  .wrap{max-width:1200px;margin:0 auto;padding:0 16px;padding-block:0 40px}
 
   header.top{
     position:sticky; top:env(safe-area-inset-top, 0px); z-index:20;
     background:color-mix(in srgb, var(--bg) 88%, transparent);
     backdrop-filter:blur(10px);border-bottom:1px solid var(--line);
   }
-  .top-inner{max-width:900px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .top-inner{max-width:1200px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
   .brand{font-family:"Lalezar", "Vazirmatn", sans-serif;font-size:26px;line-height:1.2;color:var(--berry);letter-spacing:.2px}
   .brand small{display:block;font-family:"Vazirmatn",sans-serif;font-size:11px;font-weight:400;color:var(--muted);letter-spacing:.06em}
   .modebtn{
@@ -130,8 +130,7 @@
   .board{display:grid;gap:8px;align-items:stretch}
   .corner{background:var(--bg)}
   .corner,.timelabel{position:sticky;inset-inline-start:0;z-index:2}
-  .scrollhint{margin:6px 0 0;font-size:11px;color:var(--muted);display:none}
-  @media (max-width:760px){ .scrollhint{display:block} }
+  .scrollhint{margin:6px 0 0;font-size:11px;color:var(--muted)}
   .colhead{
     padding:9px 12px;border-radius:12px;font-weight:600;font-size:14px;display:flex;align-items:center;gap:8px;
     background:var(--spec-soft);color:var(--spec);border:1px solid color-mix(in srgb, var(--spec) 28%, transparent);
@@ -413,7 +412,7 @@
     @keyframes rise{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}
   }
   @media (max-width:520px){
-    :root{--timew:42px;--tcolw:72px}
+    :root{--timew:42px;--tcolw:64px}
     .board{gap:6px}
     .slot{padding:8px 9px;min-height:70px}
     .colhead{padding:7px 8px;font-size:12.5px}
@@ -426,7 +425,7 @@
 <body>
 <header class="top">
   <div class="top-inner">
-    <div class="brand">اینفینیا<small>دفتر نوبت سالن زیبایی · نسخهٔ ۶</small></div>
+    <div class="brand">اینفینیا<small>دفتر نوبت سالن زیبایی · نسخهٔ ۷</small></div>
     <button type="button" class="modebtn" id="modeBtn">حالت ویرایش</button>
     <div class="pill" id="storagePill"><span class="dot" id="storageDot"></span><span id="storageText">در حال اتصال…</span></div>
   </div>
@@ -451,7 +450,7 @@
   </div>
 
   <div class="board-scroll"><div class="board" id="board"></div></div>
-  <p class="scrollhint">جدول را با انگشت به چپ و راست بکشید تا همهٔ متخصص‌ها را ببینید.</p>
+  <p class="scrollhint" id="scrollHint" hidden>جدول را با انگشت به چپ و راست بکشید تا همهٔ متخصص‌ها را ببینید.</p>
 
   <section class="remind" id="remindCard">
     <header>
@@ -1040,13 +1039,15 @@
           : "شما دسترسی فقط‌خواندنی دارید؛ نوبت‌ها قابل تغییر نیستند.");
   }
 
-  /* Which columns the board draws: every specialist, and right beside the ones
-     without fixed hours (مژه و ابرو) a narrow column for the exact time. */
+  /* Which columns the board draws: every specialist, and — for the ones without
+     fixed hours (مژه و ابرو) — a narrow column for the exact time. In a
+     right-to-left page the earlier column sits further right, so the time
+     column is pushed first to land on the right-hand side of its specialist. */
   function boardColumns() {
     var cols = [];
     SPECIALISTS.forEach(function (sp) {
-      cols.push({ sp: sp, time: false });
       if (sp.freeTime) cols.push({ sp: sp, time: true });
+      cols.push({ sp: sp, time: false });
     });
     return cols;
   }
@@ -1073,7 +1074,7 @@
     board.textContent = "";
     var cols = boardColumns();
     board.style.gridTemplateColumns = "var(--timew) " + cols.map(function (c) {
-      return c.time ? "var(--tcolw)" : "minmax(150px, 1fr)";
+      return c.time ? "var(--tcolw)" : "minmax(120px, 1fr)";
     }).join(" ");
     var frag = document.createDocumentFragment();
 
@@ -1160,10 +1161,22 @@
     });
 
     board.appendChild(frag);
+    updateScrollHint();
     $("stCount").textContent = fa(count);
     $("stFree").textContent = fa(Math.max(0, SLOTS.length * SPECIALISTS.length - used));
     $("stDone").textContent = fa(done);
     $("stSum").textContent = fa(sum);
+  }
+
+  /* The board fits the page on a wide screen; the hint only appears when it
+     genuinely runs off the edge, so it does not nag on a laptop. */
+  function updateScrollHint() {
+    var hint = $("scrollHint");
+    if (!hint) return;
+    setTimeout(function () {
+      var box = board.parentNode;
+      hint.hidden = !box || box.scrollWidth <= box.clientWidth + 2;
+    }, 0);
   }
 
   /* The narrow «ساعت» box beside مژه و ابرو. With a booking in the row it is a
@@ -2599,6 +2612,7 @@
       $("pickContacts").hidden = false;
       $("pickContacts").addEventListener("click", pickFromContacts);
     }
+    window.addEventListener("resize", updateScrollHint);
     if ($("custSearch")) $("custSearch").addEventListener("input", renderCustBook);
     $("vcfBtn").addEventListener("click", function () { $("vcfFile").click(); });
     $("vcfFile").addEventListener("change", function (e) {
