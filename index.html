@@ -37,6 +37,7 @@
     --ok:#3E7A4F;
     --danger:#A33A2E;
     --timew:52px;
+    --tcolw:82px;
     --shadow:0 1px 2px rgba(43,32,38,.06), 0 8px 24px -16px rgba(43,32,38,.35);
   }
   @media (prefers-color-scheme: dark){
@@ -147,6 +148,28 @@
     background:var(--bg);
   }
   .timelabel b{display:block;font-size:13px;font-weight:600;color:var(--ink)}
+
+  /* the narrow «ساعت» column beside مژه و ابرو */
+  .colhead.tcol{justify-content:center;font-size:11.5px;padding:9px 4px}
+  .tcell{display:flex;align-items:center;justify-content:center}
+  .tinput{
+    font-family:inherit;font-size:12.5px;font-variant-numeric:tabular-nums;direction:ltr;text-align:center;
+    width:100%;padding:6px 2px;border-radius:10px;color:var(--spec);background:var(--spec-soft);
+    border:1px solid color-mix(in srgb, var(--spec) 28%, transparent);
+  }
+  .tinput:focus-visible{outline:2px solid var(--spec);outline-offset:1px}
+  .tinput::-webkit-calendar-picker-indicator{display:none}
+  .tinput[readonly]{opacity:.8}
+  .tdash{
+    font-family:inherit;font-size:13px;color:var(--muted);background:transparent;border:1px dashed var(--line);
+    border-radius:10px;width:100%;height:100%;min-height:36px;cursor:pointer;
+  }
+  .tdash:hover{border-color:var(--spec);color:var(--spec)}
+  .slot .who .at{
+    font-size:10.5px;font-variant-numeric:tabular-nums;direction:ltr;
+    color:var(--spec);border:1px solid color-mix(in srgb, var(--spec) 30%, transparent);
+    border-radius:999px;padding:0 6px;
+  }
 
   .slot{
     text-align:start;font-family:inherit;font-size:13px;color:var(--ink);
@@ -267,6 +290,21 @@
   .sugg span{margin-inline-start:auto;font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums;direction:ltr}
   .sugg i{font-style:normal;font-size:10px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:0 6px}
 
+  .sugg em{font-style:normal;font-size:10px;color:var(--gold);border:1px solid var(--line);border-radius:999px;padding:0 6px}
+
+  /* ---------- the phone book ---------- */
+  .custbook{margin-top:8px;border:1px solid var(--line);border-radius:12px;background:var(--surface);max-height:260px;overflow-y:auto}
+  .crow{display:flex;align-items:center;gap:8px;padding:8px 10px;font-size:13px;border-bottom:1px solid var(--line)}
+  .crow:last-child{border-bottom:none}
+  .crow b{font-weight:600}
+  .crow .ctag{font-size:10px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:0 6px}
+  .crow .cbook{font-size:10px;color:var(--berry);background:var(--berry-soft);border-radius:999px;padding:0 7px}
+  .crow a.cnum{margin-inline-start:auto;font-size:12px;font-variant-numeric:tabular-nums;direction:ltr;color:var(--berry);text-decoration:none}
+  .crow a.cnum:hover{text-decoration:underline}
+  .crow .cnone{margin-inline-start:auto;font-size:11.5px;color:var(--muted)}
+  .cempty{padding:12px 10px;font-size:12.5px;color:var(--muted)}
+  .cmore{padding:8px 10px;font-size:11.5px;color:var(--muted);border-top:1px solid var(--line)}
+
   .langrow{display:flex;gap:6px;align-items:center}
   .langbtn{
     font-family:inherit;font-size:12.5px;padding:5px 14px;border-radius:999px;cursor:pointer;
@@ -375,7 +413,7 @@
     @keyframes rise{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}
   }
   @media (max-width:520px){
-    :root{--timew:42px}
+    :root{--timew:42px;--tcolw:72px}
     .board{gap:6px}
     .slot{padding:8px 9px;min-height:70px}
     .colhead{padding:7px 8px;font-size:12.5px}
@@ -388,7 +426,7 @@
 <body>
 <header class="top">
   <div class="top-inner">
-    <div class="brand">اینفینیا<small>دفتر نوبت سالن زیبایی · نسخهٔ ۵</small></div>
+    <div class="brand">اینفینیا<small>دفتر نوبت سالن زیبایی · نسخهٔ ۶</small></div>
     <button type="button" class="modebtn" id="modeBtn">حالت ویرایش</button>
     <div class="pill" id="storagePill"><span class="dot" id="storageDot"></span><span id="storageText">در حال اتصال…</span></div>
   </div>
@@ -459,6 +497,11 @@
         <span id="syncInfo"></span>
       </div>
       <input type="file" id="vcfFile" accept=".vcf,text/vcard,text/x-vcard" multiple hidden>
+      <div class="field" style="margin-top:10px">
+        <label for="custSearch">جست‌وجو در دفترچهٔ تلفن</label>
+        <input type="search" id="custSearch" placeholder="بخشی از نام یا شماره — مثلاً مریم" autocomplete="off">
+      </div>
+      <div class="custbook" id="custBook"></div>
       <p class="tip"><b>همگام‌سازی:</b> هر بار که مخاطب تازه‌ای در گوشی ذخیره شد، همین دکمه را بزنید و در پنجرهٔ مخاطبین «انتخاب همه» کنید — تکراری‌ها دوباره ساخته نمی‌شوند و فقط تازه‌ها اضافه می‌شوند. این دکمه روی اندروید با Chrome کار می‌کند؛ اپل اجازهٔ خواندن مخاطبین از صفحهٔ وب را نمی‌دهد، پس روی آیفون در برنامهٔ Contacts همه را انتخاب و Share ← Save to Files کنید و فایل را از دکمهٔ کناری بدهید.</p>
     </div>
   </section>
@@ -547,6 +590,10 @@
         <input type="text" id="f-name" placeholder="مثلاً مریم محمدی" autocomplete="off">
         <div class="suggest" id="suggest" hidden></div>
       </div>
+      <div class="field" id="timeField" hidden>
+        <label for="f-time">ساعت دقیق نوبت</label>
+        <input type="time" id="f-time" step="300" dir="ltr" style="text-align:center;max-width:160px">
+      </div>
       <div class="field" id="phoneField">
         <label for="f-phone">شماره تماس <span style="opacity:.7">(برای یادآوری واتس‌اپ)</span></label>
         <input type="tel" id="f-phone" placeholder="0535 871 02 36" autocomplete="off" dir="ltr" style="text-align:right">
@@ -599,11 +646,13 @@
     { id: "mahsa",  name: "مهسا جون",  tr: "Mahsa",  initial: "م", role: "لیزر",
       groups: ["laser_w", "laser_m"],
       color: "var(--violet)", soft: "var(--violet-soft)" },
+    /* مژه و ابرو ساعت ثابت ندارند؛ کنار ستونشان یک ستون «زمان» می‌آید که
+       ساعت دقیق هر نوبت را خودتان می‌نویسید. */
     { id: "sahar",  name: "سحر جون",   tr: "Sahar",  initial: "س", role: "خدمات مژه",
-      groups: ["lash"],
+      groups: ["lash"], freeTime: true,
       color: "var(--amber)", soft: "var(--amber-soft)" },
     { id: "razieh", name: "راضیه جون", tr: "Raziye", initial: "ر", role: "ابرو و آرایش دائم",
-      groups: ["brow"],
+      groups: ["brow"], freeTime: true,
       color: "var(--blue)", soft: "var(--blue-soft)" }
   ];
   var GROUPS = [
@@ -991,9 +1040,41 @@
           : "شما دسترسی فقط‌خواندنی دارید؛ نوبت‌ها قابل تغییر نیستند.");
   }
 
+  /* Which columns the board draws: every specialist, and right beside the ones
+     without fixed hours (مژه و ابرو) a narrow column for the exact time. */
+  function boardColumns() {
+    var cols = [];
+    SPECIALISTS.forEach(function (sp) {
+      cols.push({ sp: sp, time: false });
+      if (sp.freeTime) cols.push({ sp: sp, time: true });
+    });
+    return cols;
+  }
+
+  /* Where each specialist's bookings sit: one entry per visible cell, carrying
+     how many rows it covers, so the time column lines up with the booking. */
+  function boardLayout() {
+    var map = {};
+    SPECIALISTS.forEach(function (sp) {
+      var rows = [], covered = -1;
+      SLOTS.forEach(function (sl, i) {
+        if (i <= covered) return;
+        var bk = state.items[bookingId(sp.id, sl.id)];
+        var span = 1;
+        if (bk) { span = spanFor(i, bookingMins(bk)); covered = i + span - 1; }
+        rows.push({ i: i, sl: sl, bk: bk || null, span: span });
+      });
+      map[sp.id] = rows;
+    });
+    return map;
+  }
+
   function renderBoard() {
     board.textContent = "";
-    board.style.gridTemplateColumns = "var(--timew) repeat(" + SPECIALISTS.length + ", minmax(150px, 1fr))";
+    var cols = boardColumns();
+    board.style.gridTemplateColumns = "var(--timew) " + cols.map(function (c) {
+      return c.time ? "var(--tcolw)" : "minmax(150px, 1fr)";
+    }).join(" ");
     var frag = document.createDocumentFragment();
 
     var corner = document.createElement("div");
@@ -1002,14 +1083,17 @@
     corner.style.gridRow = "1";
     frag.appendChild(corner);
 
-    SPECIALISTS.forEach(function (sp, j) {
+    cols.forEach(function (col, j) {
       var h = document.createElement("div");
-      h.className = "colhead";
+      h.className = "colhead" + (col.time ? " tcol" : "");
       h.style.gridColumn = String(j + 2);
       h.style.gridRow = "1";
-      h.style.setProperty("--spec", sp.color);
-      h.style.setProperty("--spec-soft", sp.soft);
-      h.innerHTML = '<span class="avatar">' + esc(sp.initial) + "</span>" + esc(sp.name) + "<em>" + esc(sp.role) + "</em>";
+      h.style.setProperty("--spec", col.sp.color);
+      h.style.setProperty("--spec-soft", col.sp.soft);
+      h.innerHTML = col.time
+        ? "<span>ساعت</span>"
+        : '<span class="avatar">' + esc(col.sp.initial) + "</span>" + esc(col.sp.name) +
+          "<em>" + esc(col.sp.role) + "</em>";
       frag.appendChild(h);
     });
 
@@ -1022,49 +1106,54 @@
       frag.appendChild(t);
     });
 
+    var layout = boardLayout();
     var count = 0, done = 0, sum = 0, used = 0;
 
-    SPECIALISTS.forEach(function (sp, j) {
-      var coveredUntil = -1;
-      SLOTS.forEach(function (sl, i) {
-        if (i <= coveredUntil) return;
-        var bk = state.items[bookingId(sp.id, sl.id)];
+    cols.forEach(function (col, j) {
+      var sp = col.sp;
+      layout[sp.id].forEach(function (cell) {
+        var bk = cell.bk;
+        var gridRow = String(cell.i + 2) + (cell.span > 1 ? " / span " + cell.span : "");
+
+        if (col.time) {
+          frag.appendChild(timeCell(sp, cell, String(j + 2), gridRow));
+          return;
+        }
+
         var b = document.createElement("button");
         b.type = "button";
         b.dataset.spec = sp.id;
-        b.dataset.slot = sl.id;
+        b.dataset.slot = cell.sl.id;
         b.style.gridColumn = String(j + 2);
+        b.style.gridRow = gridRow;
         b.style.setProperty("--spec", sp.color);
         b.style.setProperty("--spec-soft", sp.soft);
 
         if (!bk) {
-          b.style.gridRow = String(i + 2);
           b.className = "slot empty" + (state.canWrite ? "" : " locked");
           b.innerHTML = state.canWrite
             ? '<span class="plus">+</span><span>خالی</span>'
             : "<span>خالی</span>";
-          b.setAttribute("aria-label", "ثبت نوبت " + sl.label + " برای " + sp.name);
+          b.setAttribute("aria-label", "ثبت نوبت " + cell.sl.label + " برای " + sp.name);
         } else {
           var mins = bookingMins(bk);
-          var span = spanFor(i, mins);
-          coveredUntil = i + span - 1;
-          used += span;
+          used += cell.span;
           count++;
           if (bk.done) done++;
           sum += Number(bk.amount || 0);
-          b.style.gridRow = String(i + 2) + " / span " + span;
           var chips = (bk.services || []).map(function (id) {
             return SVC_BY_ID[id] ? '<span class="chip">' + esc(SVC_BY_ID[id].name) + "</span>" : "";
           }).join("");
           var dur = humanDur(mins);
-          b.className = "slot booked" + (bk.done ? " done" : "") + (span > 1 ? " long" : "");
+          b.className = "slot booked" + (bk.done ? " done" : "") + (cell.span > 1 ? " long" : "");
           b.innerHTML =
             '<span class="who">' + (bk.done ? '<span class="check">✓</span>' : "") + esc(bk.name) +
+            (sp.freeTime && bk.time ? '<span class="at">' + esc(faDigits(bk.time)) + "</span>" : "") +
             (dur ? '<span class="dur">' + esc(dur) + "</span>" : "") + "</span>" +
             '<span class="chips">' + (chips || '<span class="chip">بدون خدمت</span>') + "</span>" +
             '<span class="foot">' + (bk.phone && state.canWrite ? esc(faDigits(bk.phone)) : "") +
             '<span class="amount">' + fa(bk.amount || 0) + " لیر</span></span>";
-          b.setAttribute("aria-label", "نوبت " + bk.name + " در " + sl.label + " نزد " + sp.name);
+          b.setAttribute("aria-label", "نوبت " + bk.name + " در " + whenLabel(bk, cell.sl) + " نزد " + sp.name);
         }
         frag.appendChild(b);
       });
@@ -1075,6 +1164,79 @@
     $("stFree").textContent = fa(Math.max(0, SLOTS.length * SPECIALISTS.length - used));
     $("stDone").textContent = fa(done);
     $("stSum").textContent = fa(sum);
+  }
+
+  /* The narrow «ساعت» box beside مژه و ابرو. With a booking in the row it is a
+     real time field you can type into; empty, it just opens the booking form. */
+  function timeCell(sp, cell, gridColumn, gridRow) {
+    var wrap = document.createElement("div");
+    wrap.className = "tcell" + (cell.bk ? " has" : "");
+    wrap.style.gridColumn = gridColumn;
+    wrap.style.gridRow = gridRow;
+    wrap.style.setProperty("--spec", sp.color);
+    wrap.style.setProperty("--spec-soft", sp.soft);
+
+    if (!cell.bk) {
+      var dash = document.createElement("button");
+      dash.type = "button";
+      dash.className = "tdash";
+      dash.dataset.spec = sp.id;
+      dash.dataset.slot = cell.sl.id;
+      dash.textContent = "—";
+      dash.setAttribute("aria-label", "ثبت نوبت " + cell.sl.label + " برای " + sp.name);
+      wrap.appendChild(dash);
+      return wrap;
+    }
+
+    var inp = document.createElement("input");
+    inp.type = "time";
+    inp.step = "300";
+    inp.className = "tinput";
+    inp.value = cell.bk.time || hhmm(cell.sl.id);
+    inp.dataset.timeSpec = sp.id;
+    inp.dataset.timeSlot = cell.sl.id;
+    inp.setAttribute("aria-label", "ساعت نوبت " + cell.bk.name + " نزد " + sp.name);
+    if (!state.canWrite) { inp.readOnly = true; inp.tabIndex = -1; }
+    wrap.appendChild(inp);
+    return wrap;
+  }
+
+  function hhmm(slotId) { return String(slotId).slice(0, 2) + ":" + String(slotId).slice(2); }
+
+  /* What to call the hour of a booking: the typed one when there is one. */
+  function whenLabel(bk, sl) {
+    if (bk && bk.time) return faDigits(bk.time);
+    return sl ? sl.label : slotLabel(bk ? bk.slot : "");
+  }
+
+  /* Typing in the time box saves straight away — no form to open. */
+  function setBookingTime(specId, slotId, value) {
+    if (!state.canWrite) return;
+    var id = bookingId(specId, slotId);
+    var bk = state.items[id];
+    if (!bk) return;
+    var t = /^\d{2}:\d{2}$/.test(String(value || "")) ? value : "";
+    if ((bk.time || "") === t) return;
+    var rec = {};
+    Object.keys(bk).forEach(function (k) { rec[k] = bk[k]; });
+    rec.time = t;
+    rec.updatedAt = new Date().toISOString();
+    state.items[id] = rec;
+    adapter.saveBooking(id, rec, false);
+    /* Keep the card's little time badge in step without redrawing the board —
+       redrawing would snatch the cursor back out of the box being typed in. */
+    var card = board.querySelector('.slot.booked[data-spec="' + specId + '"][data-slot="' + slotId + '"]');
+    var who = card && card.querySelector(".who");
+    if (!who) return;
+    var badge = who.querySelector(".at");
+    if (!t) { if (badge) badge.remove(); return; }
+    if (!badge) {
+      badge = document.createElement("span");
+      badge.className = "at";
+      var dur = who.querySelector(".dur");
+      if (dur) who.insertBefore(badge, dur); else who.appendChild(badge);
+    }
+    badge.textContent = faDigits(t);
   }
 
   function renderTariff() {
@@ -1271,7 +1433,9 @@
       b.type = "button";
       b.className = "sugg";
       b.dataset.cust = c.id;
+      var has = bookingsOn(c);
       b.innerHTML = "<b>" + esc(c.name) + "</b><i>" + (c.lang === "tr" ? "TR" : "FA") + "</i>" +
+                    (has ? "<em>" + fa(has) + " نوبت امروز</em>" : "") +
                     "<span>" + esc(c.phone ? faDigits(c.phone) : "بدون شماره") + "</span>";
       host.appendChild(b);
     });
@@ -1328,6 +1492,62 @@
     var days = Math.floor((Date.now() - new Date(last).getTime()) / 86400000);
     info.textContent = "آخرین افزودن: " +
       (isFinite(days) ? (days <= 0 ? "امروز" : days === 1 ? "دیروز" : fa(days) + " روز پیش") : "—");
+    renderCustBook();
+  }
+
+  /* One customer can take several services in one day — with more than one
+     specialist — so the phone book keeps showing her, with a count of the
+     appointments she already has on the open day. */
+  function bookingsOn(c) {
+    var dig = phoneDigits(c.phone);
+    var nm = String(c.name || "").trim().toLowerCase();
+    var n = 0;
+    Object.keys(state.items).forEach(function (k) {
+      var bk = state.items[k];
+      if (!bk) return;
+      var hit = dig ? phoneDigits(bk.phone) === dig
+                    : String(bk.name || "").trim().toLowerCase() === nm;
+      if (hit) n++;
+    });
+    return n;
+  }
+
+  function renderCustBook() {
+    var host = $("custBook");
+    if (!host) return;
+    var box = $("custSearch");
+    var q = String((box && box.value) || "").trim().toLowerCase();
+    var digits = phoneDigits(q);
+    var list = customerList();
+    if (q) {
+      list = list.filter(function (c) {
+        return c.name.toLowerCase().indexOf(q) !== -1 ||
+               (digits.length > 2 && phoneDigits(c.phone).indexOf(digits) !== -1);
+      });
+    }
+    var shown = list.slice(0, 40);
+    if (!shown.length) {
+      host.innerHTML = '<p class="cempty">' +
+        (q ? "مشتری‌ای با این نام یا شماره پیدا نشد."
+           : "هنوز مشتری‌ای ذخیره نشده است.") + "</p>";
+      return;
+    }
+    var html = shown.map(function (c) {
+      var n = bookingsOn(c);
+      return '<div class="crow"><b>' + esc(c.name) + "</b>" +
+        '<span class="ctag">' + (c.lang === "tr" ? "TR" : "FA") + "</span>" +
+        (n ? '<span class="cbook">' + fa(n) + " نوبت این روز</span>" : "") +
+        (c.phone
+          ? '<a class="cnum" href="tel:' + esc(String(c.phone).replace(/\s+/g, "")) + '">' +
+            esc(faDigits(c.phone)) + "</a>"
+          : '<span class="cnone">بدون شماره</span>') +
+        "</div>";
+    }).join("");
+    if (list.length > shown.length) {
+      html += '<p class="cmore">' + fa(list.length - shown.length) +
+              " نفر دیگر هم هستند — نامشان را جست‌وجو کنید.</p>";
+    }
+    host.innerHTML = html;
   }
 
   /* ---------- importing the phone's contacts ---------- */
@@ -1453,7 +1673,7 @@
       catch (e) { dt = bk.date; }
       return "Merhaba " + bk.name + " 🌸\n" +
              "Infinia Beauty randevu hatırlatması:\n" +
-             "Yarın " + dt + ", saat " + slotLatin(bk.slot) + "\n" +
+             "Yarın " + dt + ", saat " + (bk.time || slotLatin(bk.slot)) + "\n" +
              "Uzmanınız: " + (sp && sp.tr ? sp.tr : "") + "\n\n" +
              "Sizi bekliyoruz. Değişiklik veya iptal için bu mesaja yazmanız yeterli.";
     }
@@ -1463,7 +1683,7 @@
     return "سلام " + bk.name + " عزیز 🌸\n" +
            "یادآوری نوبت شما در سالن زیبایی اینفینیا:\n" +
            "فردا " + gFmt(d, { weekday: "long", day: "numeric", month: "long" }) +
-           " ساعت " + slotLabel(bk.slot) + "\n" +
+           " ساعت " + whenLabel(bk) + "\n" +
            "نزد " + (sp ? sp.name : "") + "\n" +
            (names ? "خدمات: " + names + "\n" : "") + "\n" +
            "منتظر شما هستیم. اگر نیاز به تغییر یا لغو دارید، همین پیام را پاسخ دهید.";
@@ -1501,7 +1721,7 @@
           "?text=" + encodeURIComponent(reminderText(bk)) + '">واتس‌اپ</a>'
         : '<span class="tag">شماره ثبت نشده</span>';
       row.innerHTML =
-        '<span class="when">' + esc(slotLabel(bk.slot)) + "</span>" +
+        '<span class="when">' + esc(whenLabel(bk)) + "</span>" +
         '<span class="who">' + (bk.remindedAt ? '<span class="done-mark">✓ </span>' : "") + esc(bk.name) + "</span>" +
         '<span class="with">نزد ' + esc(sp ? sp.name : "") + "</span>" +
         '<span class="tag">' + (bk.lang === "tr" ? "Türkçe" : "فارسی") + "</span>" +
@@ -1677,6 +1897,9 @@
       gFmt(dd, { weekday: "long", day: "numeric", month: "long" }) + (jal ? " (" + jal + ")" : "");
     $("f-name").value = existing ? existing.name || "" : "";
     $("f-phone").value = existing ? existing.phone || "" : "";
+    $("timeField").hidden = !sp.freeTime;
+    $("f-time").value = sp.freeTime ? ((existing && existing.time) || hhmm(slot)) : "";
+    $("f-time").readOnly = !state.canWrite;
     $("f-note").value = existing ? existing.note || "" : "";
     $("f-done").checked = !!(existing && existing.done);
     state.langTouched = !!(existing && existing.lang);
@@ -1757,6 +1980,7 @@
     var rec = {
       date: state.dateKey, slot: state.editing.slot, spec: state.editing.spec,
       name: name, phone: phone, lang: state.lang,
+      time: sp.freeTime ? ($("f-time").value || "") : "",
       services: services, amount: amount, mins: mins,
       note: $("f-note").value.trim(), done: $("f-done").checked,
       remindedAt: (state.editing.existing && state.editing.existing.remindedAt) || "",
@@ -1796,7 +2020,7 @@
     if (state.editing) syncServiceButtons(state.editing.spec);
   }
 
-  function onBookings(map) { state.items = map; renderBoard(); }
+  function onBookings(map) { state.items = map; renderBoard(); renderCustBook(); }
 
   function goDate(k) {
     if (k === state.dateKey) return;
@@ -2273,8 +2497,13 @@
   /* ---------- events ---------- */
   function wire() {
     board = $("board");
+    board.addEventListener("change", function (e) {
+      var t = e.target;
+      if (!t || !t.dataset || !t.dataset.timeSpec) return;
+      setBookingTime(t.dataset.timeSpec, t.dataset.timeSlot, t.value);
+    });
     board.addEventListener("click", function (e) {
-      var b = e.target.closest ? e.target.closest(".slot") : null;
+      var b = e.target.closest ? e.target.closest(".slot, .tdash") : null;
       if (!b) return;
       var taken = !!state.items[bookingId(b.dataset.spec, b.dataset.slot)];
       if (!state.canWrite && !taken) {
@@ -2370,6 +2599,7 @@
       $("pickContacts").hidden = false;
       $("pickContacts").addEventListener("click", pickFromContacts);
     }
+    if ($("custSearch")) $("custSearch").addEventListener("input", renderCustBook);
     $("vcfBtn").addEventListener("click", function () { $("vcfFile").click(); });
     $("vcfFile").addEventListener("change", function (e) {
       importVcfFiles(e.target.files || []);
