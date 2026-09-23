@@ -122,6 +122,8 @@
   .stat b{font-size:18px;font-weight:600;font-variant-numeric:tabular-nums}
   .stat span{font-size:11px;color:var(--muted);letter-spacing:.04em}
   .stat.money b{color:var(--gold)}
+  .stat.total{padding-inline-start:18px;border-inline-start:1px solid var(--line)}
+  .stat.total b{color:var(--berry)}
 
   .board-scroll{overflow-x:auto;overscroll-behavior-x:contain;padding-bottom:6px}
   .board{display:grid;gap:8px;align-items:stretch}
@@ -386,7 +388,7 @@
 <body>
 <header class="top">
   <div class="top-inner">
-    <div class="brand">اینفینیا<small>دفتر نوبت سالن زیبایی · نسخهٔ ۳</small></div>
+    <div class="brand">اینفینیا<small>دفتر نوبت سالن زیبایی · نسخهٔ ۵</small></div>
     <button type="button" class="modebtn" id="modeBtn">حالت ویرایش</button>
     <div class="pill" id="storagePill"><span class="dot" id="storageDot"></span><span id="storageText">در حال اتصال…</span></div>
   </div>
@@ -407,6 +409,7 @@
     <div class="stat"><b id="stFree">۰</b><span>جای خالی</span></div>
     <div class="stat"><b id="stDone">۰</b><span>انجام‌شده</span></div>
     <div class="stat money"><b id="stSum">۰</b><span>جمع مبلغ (لیر)</span></div>
+    <div class="stat total"><b id="stTotal">۰</b><span>نوبت‌های ثبت‌شده (از امروز)</span></div>
   </div>
 
   <div class="board-scroll"><div class="board" id="board"></div></div>
@@ -850,6 +853,7 @@
     mayWrite: true,
     viewOnly: false,
     passHash: "",
+    totalCount: 0,
     customers: {},
     reminders: {},
     lang: "fa",
@@ -858,6 +862,15 @@
     dayHours: {}
   };
   var TOMORROW = keyOf(addDays(today, 1));
+  var TODAY_KEY = keyOf(today);
+
+  /* Bookings still ahead of us: today and the days after. Days already gone
+     are not counted — the tile answers "how much is booked", not history. */
+  function setTotalCount(n) {
+    state.totalCount = typeof n === "number" && isFinite(n) && n >= 0 ? n : 0;
+    var el = $("stTotal");
+    if (el) el.textContent = fa(state.totalCount);
+  }
   var MODE_KEY = "infinia_mode_v1";
 
   /* The passcode is stored as a short hash so it is not sitting in the data in
@@ -1925,6 +1938,7 @@
         adapter.refreshReminders();
         adapter.lastSync = new Date().toISOString();
         adapter.stats();
+        adapter.refreshTotal();
         adapter.status(true);
         adapter.busy = false;
         if (!quiet) toast("همگام شد.");
@@ -1962,6 +1976,33 @@
       if ($("cloudRefresh")) $("cloudRefresh").hidden = !on;
       if ($("cloudDisconnect")) $("cloudDisconnect").hidden = !on;
       if ($("cloudConnect")) $("cloudConnect").textContent = on ? "ذخیرهٔ تغییر" : "اتصال";
+    },
+
+    /* Bookings from today onwards: from the server when connected (asking only
+       for the row count, not the rows), otherwise from what this device holds.
+       Days already gone are left out of the count. */
+    refreshTotal: function () {
+      var all = adapter.readAll(), local = 0;
+      Object.keys(all).forEach(function (id) {
+        var rec = all[id] || {};
+        var dk = rec.date || String(id).split("_")[0];
+        if (dk >= TODAY_KEY) local++;
+      });
+      if (!adapter.cloud) { setTotalCount(local); return; }
+      fetch(adapter.cloud.url + "/rest/v1/bookings?select=id&date=gte." + encodeURIComponent(TODAY_KEY), {
+        method: "GET",
+        headers: {
+          "apikey": adapter.cloud.key,
+          "Authorization": "Bearer " + adapter.cloud.key,
+          "Prefer": "count=exact",
+          "Range-Unit": "items",
+          "Range": "0-0"
+        }
+      }).then(function (r) {
+        var cr = r.headers.get("content-range") || "";
+        var n = parseInt(String(cr).split("/")[1], 10);
+        setTotalCount(isFinite(n) ? n : local);
+      }, function () { setTotalCount(local); });
     },
 
     stats: function () {
@@ -2009,6 +2050,7 @@
       adapter.watchDate(state.dateKey, true);
       adapter.refreshReminders();
       adapter.stats();
+      adapter.refreshTotal();
       adapter.status();
 
       if (adapter.cloud) {
@@ -2046,6 +2088,7 @@
       adapter.stats();
       adapter.refreshReminders();
       adapter.push("bookings", "id", id, { id: id, date: rec.date, data: rec });
+      setTimeout(function () { adapter.refreshTotal(); }, 600);
       if (!quiet) toast(ok ? (wasNew ? "نوبت ثبت شد." : "تغییرات ذخیره شد.") : "ذخیره نشد — حافظهٔ مرورگر در دسترس نیست.");
     },
 
@@ -2056,12 +2099,14 @@
       adapter.stats();
       adapter.refreshReminders();
       if (!adapter.cloud) {
+        adapter.refreshTotal();
         toast(ok ? "نوبت لغو شد." : "لغو ذخیره نشد — حافظهٔ مرورگر در دسترس نیست.");
         return;
       }
       adapter.dequeue("bookings", id);
       adapter.send({ table: "bookings", keyCol: "id", id: id, remove: true }).then(function () {
         adapter.status(true);
+        adapter.refreshTotal();
         toast("نوبت لغو شد.");
       }, function () {
         adapter.enqueue({ table: "bookings", keyCol: "id", id: id, remove: true });
@@ -2433,6 +2478,7 @@
   step(function () { adapter.stats(); }, "stats");
   step(applyMode, "mode");
   step(renderPassCard, "passcard");
+  step(function () { setTotalCount(state.totalCount); }, "total");
   if (!(okWire && okTariff && okRender)) {
     $("board").innerHTML = '<p style="grid-column:1/-1;padding:16px;text-align:center;color:var(--danger)">' +
       "صفحه درست بارگذاری نشد. یک‌بار صفحه را تازه کنید." + "</p>";
