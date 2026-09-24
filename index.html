@@ -36,6 +36,7 @@
     --gold:#A97536;
     --ok:#3E7A4F;
     --danger:#A33A2E;
+    --lac:#C8102E;          /* قرمز لاکی — روزهای تعطیل */
     --timew:52px;
     --tcolw:76px;
     --shadow:0 1px 2px rgba(43,32,38,.06), 0 8px 24px -16px rgba(43,32,38,.35);
@@ -46,7 +47,7 @@
       --line:#3A2E34; --berry:#EC8FA8; --berry-soft:#3A2029; --teal:#74C6B9; --teal-soft:#16302D;
       --violet:#BC9DE8; --violet-soft:#2A2137; --amber:#D9A45F; --amber-soft:#33281A;
       --blue:#8DB8E4; --blue-soft:#1A2733;
-      --gold:#D8A463; --ok:#83BC90; --danger:#E7907F;
+      --gold:#D8A463; --ok:#83BC90; --danger:#E7907F; --lac:#FF6E7F;
       --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 26px -18px rgba(0,0,0,.9);
     }
   }
@@ -55,7 +56,7 @@
     --line:#3A2E34; --berry:#EC8FA8; --berry-soft:#3A2029; --teal:#74C6B9; --teal-soft:#16302D;
     --violet:#BC9DE8; --violet-soft:#2A2137; --amber:#D9A45F; --amber-soft:#33281A;
     --blue:#8DB8E4; --blue-soft:#1A2733;
-    --gold:#D8A463; --ok:#83BC90; --danger:#E7907F;
+    --gold:#D8A463; --ok:#83BC90; --danger:#E7907F; --lac:#FF6E7F;
     --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 26px -18px rgba(0,0,0,.9);
   }
 
@@ -109,16 +110,35 @@
     margin-top:2px;padding-top:2px;border-top:1px dotted var(--line);
   }
   /* Turkey's official holidays */
-  .day.holiday{border-color:color-mix(in srgb, var(--danger) 45%, var(--line));background:color-mix(in srgb, var(--danger) 7%, var(--surface))}
-  .day.halfday{border-color:color-mix(in srgb, var(--gold) 55%, var(--line));background:color-mix(in srgb, var(--gold) 8%, var(--surface))}
-  .day .holdot{font-size:7px;line-height:1;margin-top:2px;color:var(--danger)}
-  .day.halfday .holdot{color:var(--gold)}
-  .holbadge{
-    margin:8px 0 0;font-size:12px;padding:6px 12px;border-radius:999px;display:inline-block;
-    background:color-mix(in srgb, var(--danger) 10%, var(--surface));color:var(--danger);
-    border:1px solid color-mix(in srgb, var(--danger) 30%, transparent);
+  .day.holiday{
+    border-color:var(--lac);border-width:2px;
+    background:color-mix(in srgb, var(--lac) 16%, var(--surface));
   }
-  .holbadge.half{background:color-mix(in srgb, var(--gold) 12%, var(--surface));color:var(--gold);border-color:color-mix(in srgb, var(--gold) 35%, transparent)}
+  .day.holiday b,.day.holiday span,.day.holiday i,.day.holiday .jal{color:var(--lac)}
+  .day.halfday{border-color:color-mix(in srgb, var(--gold) 65%, var(--line));border-width:2px;background:color-mix(in srgb, var(--gold) 12%, var(--surface))}
+  .day.halfday b{color:var(--gold)}
+  .day .holdot{font-size:9px;line-height:1;margin-top:2px;color:var(--lac)}
+  .day.halfday .holdot{color:var(--gold)}
+  .day.holiday[aria-pressed="true"]{background:var(--lac);border-color:var(--lac)}
+  .day.holiday[aria-pressed="true"] b,.day.holiday[aria-pressed="true"] span,
+  .day.holiday[aria-pressed="true"] i,.day.holiday[aria-pressed="true"] .jal,
+  .day.holiday[aria-pressed="true"] .holdot{color:#fff}
+  .holbadge{
+    margin:8px 0 0;font-size:13px;font-weight:600;padding:7px 16px;border-radius:999px;display:inline-block;
+    background:var(--lac);color:#fff;border:1px solid var(--lac);
+  }
+  .holbadge.half{background:color-mix(in srgb, var(--gold) 14%, var(--surface));color:var(--gold);border-color:color-mix(in srgb, var(--gold) 45%, transparent);font-weight:400}
+
+  /* روز تعطیل: کادر همهٔ متخصص‌ها قرمز لاکی می‌شود تا یک نگاه کافی باشد */
+  .board.closed .colhead{
+    background:color-mix(in srgb, var(--lac) 13%, var(--surface));
+    color:var(--lac);border-color:var(--lac);
+  }
+  .board.closed .colhead .avatar{background:var(--lac);color:#fff}
+  .board.closed .colhead em{color:color-mix(in srgb, var(--lac) 65%, var(--muted))}
+  .board.closed .slot.empty{border-color:color-mix(in srgb, var(--lac) 38%, var(--line))}
+  .board.closed .slot.empty:hover{border-color:var(--lac);color:var(--lac);background:color-mix(in srgb, var(--lac) 8%, transparent)}
+  .board.closed .timelabel b{color:var(--lac)}
   .day[aria-pressed="true"]{background:var(--berry);border-color:var(--berry);color:#fff}
   .day[aria-pressed="true"] span,.day[aria-pressed="true"] i{color:rgba(255,255,255,.82)}
   .day[aria-pressed="true"] .jal{color:rgba(255,255,255,.75);border-top-color:rgba(255,255,255,.3)}
@@ -436,7 +456,7 @@
 <body>
 <header class="top">
   <div class="top-inner">
-    <div class="brand">اینفینیا<small>دفتر نوبت سالن زیبایی · نسخهٔ ۱۴</small></div>
+    <div class="brand">اینفینیا<small>دفتر نوبت سالن زیبایی · نسخهٔ ۱۵</small></div>
     <button type="button" class="modebtn" id="modeBtn">حالت ویرایش</button>
     <div class="pill" id="storagePill"><span class="dot" id="storageDot"></span><span id="storageText">در حال اتصال…</span></div>
   </div>
@@ -1194,6 +1214,7 @@
 
   function renderBoard() {
     board.textContent = "";
+    board.classList.toggle("closed", !!holidayOf(state.dateKey));
     var cols = boardColumns();
     board.style.gridTemplateColumns = "var(--timew) " + cols.map(function (c) {
       return c.time ? "var(--tcolw)" : "minmax(120px, 1fr)";
