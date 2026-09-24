@@ -436,7 +436,7 @@
 <body>
 <header class="top">
   <div class="top-inner">
-    <div class="brand">اینفینیا<small>دفتر نوبت سالن زیبایی · نسخهٔ ۱۳</small></div>
+    <div class="brand">اینفینیا<small>دفتر نوبت سالن زیبایی · نسخهٔ ۱۴</small></div>
     <button type="button" class="modebtn" id="modeBtn">حالت ویرایش</button>
     <div class="pill" id="storagePill"><span class="dot" id="storageDot"></span><span id="storageText">در حال اتصال…</span></div>
   </div>
@@ -853,7 +853,11 @@
   };
   function holidayOf(k) {
     var h = HOLIDAYS[k];
-    return h ? { tr: h[0], fa: h[1], half: !!h[2] } : null;
+    if (h) return { tr: h[0], fa: h[1], half: !!h[2] };
+    /* the salon's own closed day: Sunday, marked like an official holiday */
+    var d = dateFromKey(k);
+    if (d && d.getDay() === 0) return { tr: "Pazar — kapalı", fa: "یکشنبه — سالن تعطیل", weekly: true };
+    return null;
   }
 
   function dateFromKey(k) { var p = k.split("-"); return new Date(+p[0], +p[1] - 1, +p[2]); }
@@ -1145,7 +1149,9 @@
       hb.hidden = !hol;
       if (hol) {
         hb.className = "holbadge" + (hol.half ? " half" : "");
-        hb.textContent = "تعطیل رسمی ترکیه — " + hol.fa + (hol.half ? " (نیم‌روز)" : "") + " · " + hol.tr;
+        hb.textContent = hol.weekly
+          ? hol.fa
+          : "تعطیل رسمی ترکیه — " + hol.fa + (hol.half ? " (نیم‌روز)" : "") + " · " + hol.tr;
       }
     }
     $("dateHint").textContent = state.canWrite
