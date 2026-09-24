@@ -108,6 +108,17 @@
     display:block;font-size:9px;line-height:1.5;color:var(--muted);opacity:.85;
     margin-top:2px;padding-top:2px;border-top:1px dotted var(--line);
   }
+  /* Turkey's official holidays */
+  .day.holiday{border-color:color-mix(in srgb, var(--danger) 45%, var(--line));background:color-mix(in srgb, var(--danger) 7%, var(--surface))}
+  .day.halfday{border-color:color-mix(in srgb, var(--gold) 55%, var(--line));background:color-mix(in srgb, var(--gold) 8%, var(--surface))}
+  .day .holdot{font-size:7px;line-height:1;margin-top:2px;color:var(--danger)}
+  .day.halfday .holdot{color:var(--gold)}
+  .holbadge{
+    margin:8px 0 0;font-size:12px;padding:6px 12px;border-radius:999px;display:inline-block;
+    background:color-mix(in srgb, var(--danger) 10%, var(--surface));color:var(--danger);
+    border:1px solid color-mix(in srgb, var(--danger) 30%, transparent);
+  }
+  .holbadge.half{background:color-mix(in srgb, var(--gold) 12%, var(--surface));color:var(--gold);border-color:color-mix(in srgb, var(--gold) 35%, transparent)}
   .day[aria-pressed="true"]{background:var(--berry);border-color:var(--berry);color:#fff}
   .day[aria-pressed="true"] span,.day[aria-pressed="true"] i{color:rgba(255,255,255,.82)}
   .day[aria-pressed="true"] .jal{color:rgba(255,255,255,.75);border-top-color:rgba(255,255,255,.3)}
@@ -425,7 +436,7 @@
 <body>
 <header class="top">
   <div class="top-inner">
-    <div class="brand">اینفینیا<small>دفتر نوبت سالن زیبایی · نسخهٔ ۱۲</small></div>
+    <div class="brand">اینفینیا<small>دفتر نوبت سالن زیبایی · نسخهٔ ۱۳</small></div>
     <button type="button" class="modebtn" id="modeBtn">حالت ویرایش</button>
     <div class="pill" id="storagePill"><span class="dot" id="storageDot"></span><span id="storageText">در حال اتصال…</span></div>
   </div>
@@ -440,6 +451,7 @@
 
   <h1 class="headline" id="dateTitle">—</h1>
   <p class="sub"><span class="jal-line" id="dateJalali">—</span> · <span class="latin" id="dateLatin">—</span> · <span id="dateHint">برای ثبت نوبت، روی خانهٔ خالیِ زیر نام متخصص بزنید.</span></p>
+  <p class="holbadge" id="dateHoliday" hidden>—</p>
 
   <div class="stats">
     <div class="stat"><b id="stCount">۰</b><span>نوبت ناخن</span></div>
@@ -801,6 +813,49 @@
   function keyOf(d) {
     return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
   }
+  /* Turkey's official holidays. The religious ones follow the Hijri calendar
+     and are announced by the government, so 2026 and 2027 are entered by hand;
+     "half" marks the afternoon-only eves (arife). */
+  var HOLIDAYS = {
+    "2026-01-01": ["Yılbaşı", "سال نو میلادی"],
+    "2026-03-19": ["Ramazan Bayramı Arifesi", "عرفهٔ عید فطر", 1],
+    "2026-03-20": ["Ramazan Bayramı 1. Gün", "عید فطر — روز اول"],
+    "2026-03-21": ["Ramazan Bayramı 2. Gün", "عید فطر — روز دوم"],
+    "2026-03-22": ["Ramazan Bayramı 3. Gün", "عید فطر — روز سوم"],
+    "2026-04-23": ["Ulusal Egemenlik ve Çocuk Bayramı", "عید حاکمیت ملی و کودک"],
+    "2026-05-01": ["Emek ve Dayanışma Günü", "روز کارگر"],
+    "2026-05-19": ["Atatürk'ü Anma, Gençlik ve Spor Bayramı", "عید جوانان و ورزش"],
+    "2026-05-26": ["Kurban Bayramı Arifesi", "عرفهٔ عید قربان", 1],
+    "2026-05-27": ["Kurban Bayramı 1. Gün", "عید قربان — روز اول"],
+    "2026-05-28": ["Kurban Bayramı 2. Gün", "عید قربان — روز دوم"],
+    "2026-05-29": ["Kurban Bayramı 3. Gün", "عید قربان — روز سوم"],
+    "2026-05-30": ["Kurban Bayramı 4. Gün", "عید قربان — روز چهارم"],
+    "2026-07-15": ["Demokrasi ve Millî Birlik Günü", "روز دموکراسی و وحدت ملی"],
+    "2026-08-30": ["Zafer Bayramı", "عید پیروزی"],
+    "2026-10-28": ["Cumhuriyet Bayramı Arifesi", "عصر پیش از عید جمهوری", 1],
+    "2026-10-29": ["Cumhuriyet Bayramı", "عید جمهوری"],
+    "2027-01-01": ["Yılbaşı", "سال نو میلادی"],
+    "2027-03-08": ["Ramazan Bayramı Arifesi", "عرفهٔ عید فطر", 1],
+    "2027-03-09": ["Ramazan Bayramı 1. Gün", "عید فطر — روز اول"],
+    "2027-03-10": ["Ramazan Bayramı 2. Gün", "عید فطر — روز دوم"],
+    "2027-03-11": ["Ramazan Bayramı 3. Gün", "عید فطر — روز سوم"],
+    "2027-04-23": ["Ulusal Egemenlik ve Çocuk Bayramı", "عید حاکمیت ملی و کودک"],
+    "2027-05-01": ["Emek ve Dayanışma Günü", "روز کارگر"],
+    "2027-05-15": ["Kurban Bayramı Arifesi", "عرفهٔ عید قربان", 1],
+    "2027-05-16": ["Kurban Bayramı 1. Gün", "عید قربان — روز اول"],
+    "2027-05-17": ["Kurban Bayramı 2. Gün", "عید قربان — روز دوم"],
+    "2027-05-18": ["Kurban Bayramı 3. Gün", "عید قربان — روز سوم"],
+    "2027-05-19": ["Kurban Bayramı 4. Gün · Gençlik ve Spor Bayramı", "عید قربان — روز چهارم و عید جوانان"],
+    "2027-07-15": ["Demokrasi ve Millî Birlik Günü", "روز دموکراسی و وحدت ملی"],
+    "2027-08-30": ["Zafer Bayramı", "عید پیروزی"],
+    "2027-10-28": ["Cumhuriyet Bayramı Arifesi", "عصر پیش از عید جمهوری", 1],
+    "2027-10-29": ["Cumhuriyet Bayramı", "عید جمهوری"]
+  };
+  function holidayOf(k) {
+    var h = HOLIDAYS[k];
+    return h ? { tr: h[0], fa: h[1], half: !!h[2] } : null;
+  }
+
   function dateFromKey(k) { var p = k.split("-"); return new Date(+p[0], +p[1] - 1, +p[2]); }
   function gFmt(d, opts) {
     try { return new Intl.DateTimeFormat("fa-IR-u-ca-gregory", opts).format(d); }
@@ -1063,15 +1118,19 @@
       var d = addDays(state.weekStart, i);
       var k = keyOf(d);
       var b = document.createElement("button");
-      b.className = "day" + (k === keyOf(today) ? " today" : "") + (dayIsCustom(k) ? " hasslots" : "");
+      var hol = holidayOf(k);
+      b.className = "day" + (k === keyOf(today) ? " today" : "") + (dayIsCustom(k) ? " hasslots" : "") +
+                    (hol ? (hol.half ? " halfday" : " holiday") : "");
       if (dayIsCustom(k)) b.title = "این روز ساعات جداگانه دارد";
+      if (hol) b.title = (b.title ? b.title + " — " : "") + hol.fa + " · " + hol.tr;
       b.type = "button";
       b.setAttribute("aria-pressed", k === state.dateKey ? "true" : "false");
       b.dataset.key = k;
       b.innerHTML = "<b>" + esc(gFmt(d, { day: "numeric" })) + "</b><span>" +
                     esc(gFmt(d, { weekday: "short" })) + "</span><i>" +
                     esc(gFmt(d, { month: "short" })) + "</i><span class=\"jal\">" +
-                    esc(jFmt(d, { day: "numeric", month: "long" })) + "</span>";
+                    esc(jFmt(d, { day: "numeric", month: "long" })) + "</span>" +
+                    (hol ? '<span class="holdot" aria-hidden="true">●</span>' : "");
       host.appendChild(b);
     }
   }
@@ -1081,6 +1140,14 @@
     $("dateTitle").textContent = gFmt(d, { weekday: "long", day: "numeric", month: "long", year: "numeric" });
     $("dateJalali").textContent = jFmt(d, { day: "numeric", month: "long", year: "numeric" });
     $("dateLatin").textContent = latin(d);
+    var hol = holidayOf(state.dateKey), hb = $("dateHoliday");
+    if (hb) {
+      hb.hidden = !hol;
+      if (hol) {
+        hb.className = "holbadge" + (hol.half ? " half" : "");
+        hb.textContent = "تعطیل رسمی ترکیه — " + hol.fa + (hol.half ? " (نیم‌روز)" : "") + " · " + hol.tr;
+      }
+    }
     $("dateHint").textContent = state.canWrite
       ? "برای ثبت نوبت، روی خانهٔ خالیِ زیر نام متخصص بزنید."
       : (state.viewOnly
