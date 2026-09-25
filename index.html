@@ -91,11 +91,15 @@
   .dot.warn{background:var(--gold)}
 
   .datebar{display:flex;align-items:center;gap:8px;margin-top:18px}
+  /* The angle-quote characters flip themselves in a right-to-left page, so the
+     arrows here are plain triangles, which never mirror. */
   .navbtn{
     flex:none;width:34px;height:34px;border-radius:10px;border:1px solid var(--line);
-    background:var(--surface);color:var(--ink);cursor:pointer;font-size:15px;line-height:1;
+    background:var(--surface);color:var(--muted);cursor:pointer;font-size:11px;line-height:1;
+    display:grid;place-items:center;
   }
   .navbtn:hover{border-color:var(--berry);color:var(--berry)}
+  .navbtn.wk{width:40px;letter-spacing:-2px;font-size:10px;background:var(--surface-2)}
   .days{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin}
   .day{
     flex:none;min-width:60px;padding:6px 8px;border-radius:12px;border:1px solid var(--line);
@@ -456,7 +460,7 @@
 <body>
 <header class="top">
   <div class="top-inner">
-    <div class="brand">اینفینیا<small>دفتر نوبت سالن زیبایی · نسخهٔ ۱۵</small></div>
+    <div class="brand">اینفینیا<small>دفتر نوبت سالن زیبایی · نسخهٔ ۱۶</small></div>
     <button type="button" class="modebtn" id="modeBtn">حالت ویرایش</button>
     <div class="pill" id="storagePill"><span class="dot" id="storageDot"></span><span id="storageText">در حال اتصال…</span></div>
   </div>
@@ -464,9 +468,11 @@
 
 <div class="wrap">
   <div class="datebar">
-    <button class="navbtn" id="prevBtn" aria-label="روز قبل">›</button>
+    <button class="navbtn wk" id="prevWeek" aria-label="هفتهٔ قبل" title="هفتهٔ قبل">▶▶</button>
+    <button class="navbtn" id="prevBtn" aria-label="روز قبل" title="روز قبل">▶</button>
     <div class="days" id="days"></div>
-    <button class="navbtn" id="nextBtn" aria-label="روز بعد">‹</button>
+    <button class="navbtn" id="nextBtn" aria-label="روز بعد" title="روز بعد">◀</button>
+    <button class="navbtn wk" id="nextWeek" aria-label="هفتهٔ بعد" title="هفتهٔ بعد">◀◀</button>
   </div>
 
   <h1 class="headline" id="dateTitle">—</h1>
@@ -2928,6 +2934,15 @@
       var b = e.target.closest ? e.target.closest(".day") : null;
       if (b) goDate(b.dataset.key);
     });
+    /* A whole week at a time, with the strip re-centred on the new day. */
+    function jumpWeek(step) {
+      var d = addDays(dateFromKey(state.dateKey), step * 7);
+      state.weekStart = addDays(d, -1);
+      goDate(keyOf(d));
+      renderDays();
+    }
+    $("prevWeek").addEventListener("click", function () { jumpWeek(-1); });
+    $("nextWeek").addEventListener("click", function () { jumpWeek(1); });
     $("prevBtn").addEventListener("click", function () {
       var d = addDays(dateFromKey(state.dateKey), -1);
       if (d < state.weekStart) state.weekStart = addDays(state.weekStart, -3);
