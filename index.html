@@ -195,9 +195,11 @@
   .tinput::-webkit-calendar-picker-indicator{display:none}
   .tinput[readonly]{opacity:.8}
   .tdash{
-    font-family:inherit;font-size:13px;color:var(--muted);background:transparent;border:1px dashed var(--line);
-    border-radius:10px;width:100%;height:100%;min-height:36px;cursor:pointer;
+    font-family:inherit;font-size:12.5px;font-variant-numeric:tabular-nums;
+    color:var(--muted);background:transparent;border:1px dashed var(--line);
+    border-radius:10px;width:100%;height:100%;min-height:36px;cursor:pointer;opacity:.75;
   }
+  .tdash:hover{opacity:1}
   .tdash:hover{border-color:var(--spec);color:var(--spec)}
   .slot .who .at{
     font-size:10.5px;font-variant-numeric:tabular-nums;direction:ltr;
@@ -460,7 +462,7 @@
 <body>
 <header class="top">
   <div class="top-inner">
-    <div class="brand">اینفینیا<small>دفتر نوبت سالن زیبایی · نسخهٔ ۱۷</small></div>
+    <div class="brand">اینفینیا<small>دفتر نوبت سالن زیبایی · نسخهٔ ۱۸</small></div>
     <button type="button" class="modebtn" id="modeBtn">حالت ویرایش</button>
     <div class="pill" id="storagePill"><span class="dot" id="storageDot"></span><span id="storageText">در حال اتصال…</span></div>
   </div>
@@ -1343,7 +1345,8 @@
       dash.className = "tdash";
       dash.dataset.spec = sp.id;
       dash.dataset.slot = cell.sl.id;
-      dash.textContent = "—";
+      /* The row's own hour, already written in — tap it to book at that time. */
+      dash.textContent = cell.sl.label;
       dash.setAttribute("aria-label", "ثبت نوبت " + cell.sl.label + " برای " + sp.name);
       wrap.appendChild(dash);
       return wrap;
