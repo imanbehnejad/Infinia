@@ -460,7 +460,7 @@
 <body>
 <header class="top">
   <div class="top-inner">
-    <div class="brand">اینفینیا<small>دفتر نوبت سالن زیبایی · نسخهٔ ۱۶</small></div>
+    <div class="brand">اینفینیا<small>دفتر نوبت سالن زیبایی · نسخهٔ ۱۷</small></div>
     <button type="button" class="modebtn" id="modeBtn">حالت ویرایش</button>
     <div class="pill" id="storagePill"><span class="dot" id="storageDot"></span><span id="storageText">در حال اتصال…</span></div>
   </div>
@@ -671,21 +671,19 @@
   /* ---------- data ---------- */
   /* Working hours are data, not layout: the salon edits them in the page and
      the grid rebuilds itself around whatever rows are left. */
-  var DEFAULT_SLOTS = ["0930", "1130", "1330", "1530", "1730"];
+  var DEFAULT_SLOTS = ["0900", "0930", "1100", "1130", "1300", "1330", "1500", "1530", "1700", "1730"];
   var SLOTS = [];
   var SPECIALISTS = [
     /* nail:true — the chairs the occupancy figures are counted on */
     { id: "bahar",  name: "بهار جون",  tr: "Bahar",  initial: "ب", role: "خدمات دست",
-      groups: ["hand_care", "hand_nail", "hand_remove", "design"], nail: true,
+      groups: ["hand_care", "hand_nail", "hand_remove", "design"], nail: true, freeTime: true,
       color: "var(--berry)", soft: "var(--berry-soft)" },
     { id: "shirin", name: "شیرین جون", tr: "Şirin",  initial: "ش", role: "خدمات دست و پا",
-      groups: ["hand_care", "hand_nail", "hand_remove", "design", "foot"], nail: true,
+      groups: ["hand_care", "hand_nail", "hand_remove", "design", "foot"], nail: true, freeTime: true,
       color: "var(--teal)", soft: "var(--teal-soft)" },
     { id: "mahsa",  name: "مهسا جون",  tr: "Mahsa",  initial: "م", role: "لیزر",
-      groups: ["laser_w", "laser_m"],
+      groups: ["laser_w", "laser_m"], freeTime: true,
       color: "var(--violet)", soft: "var(--violet-soft)" },
-    /* مژه و ابرو ساعت ثابت ندارند؛ کنار ستونشان یک ستون «زمان» می‌آید که
-       ساعت دقیق هر نوبت را خودتان می‌نویسید. */
     { id: "sahar",  name: "سحر جون",   tr: "Sahar",  initial: "س", role: "خدمات مژه",
       groups: ["lash"], freeTime: true,
       color: "var(--amber)", soft: "var(--amber-soft)" },
@@ -1223,7 +1221,7 @@
     board.classList.toggle("closed", !!holidayOf(state.dateKey));
     var cols = boardColumns();
     board.style.gridTemplateColumns = "var(--timew) " + cols.map(function (c) {
-      return c.time ? "var(--tcolw)" : "minmax(120px, 1fr)";
+      return c.time ? "var(--tcolw)" : "minmax(108px, 1fr)";
     }).join(" ");
     var frag = document.createDocumentFragment();
 
