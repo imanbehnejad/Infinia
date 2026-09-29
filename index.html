@@ -246,7 +246,7 @@
   .addmore{
     font-family:inherit;font-size:10.5px;padding:3px 8px;border-radius:999px;cursor:pointer;
     border:1px dashed color-mix(in srgb, var(--spec) 45%, var(--line));
-    background:transparent;color:var(--spec);opacity:.55;align-self:stretch;
+    background:transparent;color:var(--spec);opacity:.5;align-self:center;
   }
   .addmore:hover{opacity:1;background:var(--spec-soft)}
 
@@ -479,7 +479,7 @@
 <body>
 <header class="top">
   <div class="top-inner">
-    <div class="brand">اینفینیا<small>دفتر نوبت سالن زیبایی · نسخهٔ ۲۵</small></div>
+    <div class="brand">اینفینیا<small>دفتر نوبت سالن زیبایی · نسخهٔ ۲۶</small></div>
     <button type="button" class="modebtn" id="modeBtn">حالت ویرایش</button>
     <div class="pill" id="storagePill"><span class="dot" id="storageDot"></span><span id="storageText">در حال اتصال…</span></div>
   </div>
@@ -1261,9 +1261,8 @@
   function boardLayout() {
     var map = {};
     SPECIALISTS.forEach(function (sp) {
-      var rows = [], covered = -1;
+      var rows = [];
       SLOTS.forEach(function (sl, i) {
-        if (i <= covered) return;
         var list = bookingsAt(sp.id, sl.id);
         /* inside one hour, the earlier appointment is shown first */
         list.sort(function (a, b) {
@@ -1271,12 +1270,14 @@
           if (ta !== tb) return ta < tb ? -1 : 1;
           return String(a.bk.name || "").localeCompare(String(b.bk.name || ""), "fa");
         });
-        var span = 1;
+        /* Every hour keeps its own row opposite its own label: a long service
+           is shown by its duration on the card, not by swallowing the rows
+           beneath it — those stay visible and bookable. */
+        var over = false;
         list.forEach(function (e) {
-          span = Math.max(span, spanFor(i, bookingMins(e.bk)));
+          if (spanFor(i, bookingMins(e.bk)) > 1) over = true;
         });
-        if (list.length) covered = i + span - 1;
-        rows.push({ i: i, sl: sl, list: list, bk: list.length ? list[0].bk : null, span: span });
+        rows.push({ i: i, sl: sl, list: list, bk: list.length ? list[0].bk : null, span: 1, over: over });
       });
       map[sp.id] = rows;
     });
@@ -1379,7 +1380,7 @@
           b.dataset.spec = sp.id;
           b.dataset.slot = cell.sl.id;
           b.dataset.id = entry.id;
-          b.className = "slot booked" + (rec.done ? " done" : "") + (cell.span > 1 ? " long" : "");
+          b.className = "slot booked" + (rec.done ? " done" : "") + (cell.over ? " long" : "");
           b.innerHTML =
             '<span class="who">' + (rec.done ? '<span class="check">✓</span>' : "") + esc(rec.name) +
             (rec.time ? '<span class="at">' + esc(faDigits(rec.time)) + "</span>" : "") +
@@ -1398,7 +1399,7 @@
           add.className = "addmore";
           add.dataset.addSpec = sp.id;
           add.dataset.addSlot = cell.sl.id;
-          add.textContent = "+ نوبت هم‌زمان";
+          add.textContent = "+ هم‌زمان";
           add.title = "مشتری دوم در همین ساعت نزد " + sp.name;
           stack.appendChild(add);
         }
@@ -2312,9 +2313,7 @@
     var d = $("durOut");
     if (d) {
       if (!mins) { d.textContent = ""; return total; }
-      var i = state.editing ? slotIndexOf(state.editing.slot) : -1;
-      var span = spanFor(i, mins);
-      d.textContent = humanDur(mins) + (span > 1 ? " · " + fa(span) + " ردیف از جدول" : "");
+      d.textContent = humanDur(mins);
     }
     return total;
   }
