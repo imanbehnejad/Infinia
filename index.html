@@ -237,6 +237,19 @@
   .slot .amount{margin-inline-start:auto;font-variant-numeric:tabular-nums;color:var(--gold);font-weight:600;font-size:12px}
   .slot.done{opacity:.72}
 
+  /* two customers in one hour, side by side in the same cell */
+  .stack{display:flex;flex-direction:column;gap:5px;min-width:0}
+  .stack > .slot{flex:1 1 auto}
+  .stack.multi > .slot{min-height:0}
+  .stack.multi .chips{display:none}
+  .stack.multi .slot .who{font-size:13px}
+  .addmore{
+    font-family:inherit;font-size:10.5px;padding:3px 8px;border-radius:999px;cursor:pointer;
+    border:1px dashed color-mix(in srgb, var(--spec) 45%, var(--line));
+    background:transparent;color:var(--spec);opacity:.55;align-self:stretch;
+  }
+  .addmore:hover{opacity:1;background:var(--spec-soft)}
+
   details.tariff{margin-top:26px;border:1px solid var(--line);border-radius:14px;background:var(--surface);overflow:hidden}
   details.tariff summary{padding:12px 14px;cursor:pointer;font-weight:600;font-size:14px;list-style:none;display:flex;align-items:center;gap:8px}
   details.tariff summary::-webkit-details-marker{display:none}
@@ -463,7 +476,7 @@
 <body>
 <header class="top">
   <div class="top-inner">
-    <div class="brand">اینفینیا<small>دفتر نوبت سالن زیبایی · نسخهٔ ۲۰</small></div>
+    <div class="brand">اینفینیا<small>دفتر نوبت سالن زیبایی · نسخهٔ ۲۲</small></div>
     <button type="button" class="modebtn" id="modeBtn">حالت ویرایش</button>
     <div class="pill" id="storagePill"><span class="dot" id="storageDot"></span><span id="storageText">در حال اتصال…</span></div>
   </div>
@@ -1139,6 +1152,28 @@
   var board;
 
   function bookingId(spec, slot) { return state.dateKey + "_" + spec + "_" + slot; }
+
+  /* One chair can hold two customers at once — one waiting for gel to cure
+     while the next is started — so an hour is allowed more than one booking.
+     The first keeps the plain id; the ones after it carry a suffix. */
+  function freeBookingId(spec, slot) {
+    var base = bookingId(spec, slot);
+    if (!state.items[base]) return base;
+    for (var n = 2; n < 30; n++) {
+      if (!state.items[base + "_" + n]) return base + "_" + n;
+    }
+    return base + "_" + Date.now();
+  }
+
+  function bookingsAt(spec, slot) {
+    var base = bookingId(spec, slot), out = [];
+    if (state.items[base]) out.push({ id: base, bk: state.items[base] });
+    for (var n = 2; n < 30; n++) {
+      var id = base + "_" + n;
+      if (state.items[id]) out.push({ id: id, bk: state.items[id] });
+    }
+    return out;
+  }
   function specById(id) { return SPECIALISTS.filter(function (s) { return s.id === id; })[0]; }
   function groupById(id) { return GROUPS.filter(function (g) { return g.id === id; })[0]; }
 
@@ -1210,10 +1245,13 @@
       var rows = [], covered = -1;
       SLOTS.forEach(function (sl, i) {
         if (i <= covered) return;
-        var bk = state.items[bookingId(sp.id, sl.id)];
+        var list = bookingsAt(sp.id, sl.id);
         var span = 1;
-        if (bk) { span = spanFor(i, bookingMins(bk)); covered = i + span - 1; }
-        rows.push({ i: i, sl: sl, bk: bk || null, span: span });
+        list.forEach(function (e) {
+          span = Math.max(span, spanFor(i, bookingMins(e.bk)));
+        });
+        if (list.length) covered = i + span - 1;
+        rows.push({ i: i, sl: sl, list: list, bk: list.length ? list[0].bk : null, span: span });
       });
       map[sp.id] = rows;
     });
@@ -1272,43 +1310,74 @@
           return;
         }
 
-        var b = document.createElement("button");
-        b.type = "button";
-        b.dataset.spec = sp.id;
-        b.dataset.slot = cell.sl.id;
-        b.style.gridColumn = String(j + 2);
-        b.style.gridRow = gridRow;
-        b.style.setProperty("--spec", sp.color);
-        b.style.setProperty("--spec-soft", sp.soft);
-
-        if (!bk) {
-          b.className = "slot empty" + (state.canWrite ? "" : " locked");
-          b.innerHTML = state.canWrite
+        if (!cell.list.length) {
+          var e = document.createElement("button");
+          e.type = "button";
+          e.dataset.spec = sp.id;
+          e.dataset.slot = cell.sl.id;
+          e.style.gridColumn = String(j + 2);
+          e.style.gridRow = gridRow;
+          e.style.setProperty("--spec", sp.color);
+          e.style.setProperty("--spec-soft", sp.soft);
+          e.className = "slot empty" + (state.canWrite ? "" : " locked");
+          e.innerHTML = state.canWrite
             ? '<span class="plus">+</span><span>خالی</span>'
             : "<span>خالی</span>";
-          b.setAttribute("aria-label", "ثبت نوبت " + cell.sl.label + " برای " + sp.name);
-        } else {
-          var mins = bookingMins(bk);
-          /* Occupancy is measured on the nail chairs only — the salon reads
-             these figures to know how full بهار and شیرین are. The money
-             below is the whole day's takings, every specialist included. */
-          if (sp.nail) { used += cell.span; count++; if (bk.done) done++; }
-          sum += Number(bk.amount || 0);
-          var chips = (bk.services || []).map(function (id) {
+          e.setAttribute("aria-label", "ثبت نوبت " + cell.sl.label + " برای " + sp.name);
+          frag.appendChild(e);
+          return;
+        }
+
+        /* Occupancy is measured on the nail chairs only — the salon reads these
+           figures to know how full بهار and شیرین are. The money below is the
+           whole day's takings, every specialist included. */
+        if (sp.nail) { used += cell.span; }
+
+        var stack = document.createElement("div");
+        stack.className = "stack" + (cell.list.length > 1 ? " multi" : "");
+        stack.style.gridColumn = String(j + 2);
+        stack.style.gridRow = gridRow;
+        stack.style.setProperty("--spec", sp.color);
+        stack.style.setProperty("--spec-soft", sp.soft);
+
+        cell.list.forEach(function (entry) {
+          var rec = entry.bk;
+          var mins = bookingMins(rec);
+          if (sp.nail) { count++; if (rec.done) done++; }
+          sum += Number(rec.amount || 0);
+          var chips = (rec.services || []).map(function (id) {
             return SVC_BY_ID[id] ? '<span class="chip">' + esc(SVC_BY_ID[id].name) + "</span>" : "";
           }).join("");
           var dur = humanDur(mins);
-          b.className = "slot booked" + (bk.done ? " done" : "") + (cell.span > 1 ? " long" : "");
+          var b = document.createElement("button");
+          b.type = "button";
+          b.dataset.spec = sp.id;
+          b.dataset.slot = cell.sl.id;
+          b.dataset.id = entry.id;
+          b.className = "slot booked" + (rec.done ? " done" : "") + (cell.span > 1 ? " long" : "");
           b.innerHTML =
-            '<span class="who">' + (bk.done ? '<span class="check">✓</span>' : "") + esc(bk.name) +
-            (sp.freeTime && bk.time ? '<span class="at">' + esc(faDigits(bk.time)) + "</span>" : "") +
+            '<span class="who">' + (rec.done ? '<span class="check">✓</span>' : "") + esc(rec.name) +
+            (rec.time ? '<span class="at">' + esc(faDigits(rec.time)) + "</span>" : "") +
             (dur ? '<span class="dur">' + esc(dur) + "</span>" : "") + "</span>" +
             '<span class="chips">' + (chips || '<span class="chip">بدون خدمت</span>') + "</span>" +
-            '<span class="foot">' + (bk.phone && state.canWrite ? esc(faDigits(bk.phone)) : "") +
-            (state.canWrite ? '<span class="amount">' + fa(bk.amount || 0) + " لیر</span>" : "") + "</span>";
-          b.setAttribute("aria-label", "نوبت " + bk.name + " در " + whenLabel(bk, cell.sl) + " نزد " + sp.name);
+            '<span class="foot">' + (rec.phone && state.canWrite ? esc(faDigits(rec.phone)) : "") +
+            (state.canWrite ? '<span class="amount">' + fa(rec.amount || 0) + " لیر</span>" : "") + "</span>";
+          b.setAttribute("aria-label", "نوبت " + rec.name + " در " + whenLabel(rec, cell.sl) + " نزد " + sp.name);
+          stack.appendChild(b);
+        });
+
+        /* the small plus that puts a second customer in the same hour */
+        if (state.canWrite) {
+          var add = document.createElement("button");
+          add.type = "button";
+          add.className = "addmore";
+          add.dataset.addSpec = sp.id;
+          add.dataset.addSlot = cell.sl.id;
+          add.textContent = "+ نوبت هم‌زمان";
+          add.title = "مشتری دوم در همین ساعت نزد " + sp.name;
+          stack.appendChild(add);
         }
-        frag.appendChild(b);
+        frag.appendChild(stack);
       });
     });
 
@@ -1335,13 +1404,13 @@
      real time field you can type into; empty, it just opens the booking form. */
   function timeCell(sp, cell, gridColumn, gridRow) {
     var wrap = document.createElement("div");
-    wrap.className = "tcell" + (cell.bk ? " has" : "");
+    wrap.className = "tcell" + (cell.list.length ? " has" : "");
     wrap.style.gridColumn = gridColumn;
     wrap.style.gridRow = gridRow;
     wrap.style.setProperty("--spec", sp.color);
     wrap.style.setProperty("--spec-soft", sp.soft);
 
-    if (!cell.bk) {
+    if (!cell.list.length) {
       var dash = document.createElement("button");
       dash.type = "button";
       dash.className = "tdash";
@@ -1358,10 +1427,11 @@
     inp.type = "time";
     inp.step = "300";
     inp.className = "tinput";
-    inp.value = cell.bk.time || hhmm(cell.sl.id);
+    inp.value = cell.list[0].bk.time || hhmm(cell.sl.id);
     inp.dataset.timeSpec = sp.id;
     inp.dataset.timeSlot = cell.sl.id;
-    inp.setAttribute("aria-label", "ساعت نوبت " + cell.bk.name + " نزد " + sp.name);
+    inp.dataset.timeId = cell.list[0].id;
+    inp.setAttribute("aria-label", "ساعت نوبت " + cell.list[0].bk.name + " نزد " + sp.name);
     if (!state.canWrite) { inp.readOnly = true; inp.tabIndex = -1; }
     wrap.appendChild(inp);
     return wrap;
@@ -1376,9 +1446,9 @@
   }
 
   /* Typing in the time box saves straight away — no form to open. */
-  function setBookingTime(specId, slotId, value) {
+  function setBookingTime(specId, slotId, value, bookingKey) {
     if (!state.canWrite) return;
-    var id = bookingId(specId, slotId);
+    var id = bookingKey || bookingId(specId, slotId);
     var bk = state.items[id];
     if (!bk) return;
     var t = /^\d{2}:\d{2}$/.test(String(value || "")) ? value : "";
@@ -1391,7 +1461,7 @@
     adapter.saveBooking(id, rec, false);
     /* Keep the card's little time badge in step without redrawing the board —
        redrawing would snatch the cursor back out of the box being typed in. */
-    var card = board.querySelector('.slot.booked[data-spec="' + specId + '"][data-slot="' + slotId + '"]');
+    var card = board.querySelector('.slot.booked[data-id="' + id + '"]');
     var who = card && card.querySelector(".who");
     if (!who) return;
     var badge = who.querySelector(".at");
@@ -2186,10 +2256,10 @@
     return total;
   }
 
-  function openSheet(spec, slot) {
+  function openSheet(spec, slot, key) {
     var sp = specById(spec);
     var sl = SLOTS.filter(function (s) { return s.id === slot; })[0];
-    var id = bookingId(spec, slot);
+    var id = key === "new" ? freeBookingId(spec, slot) : (key || bookingId(spec, slot));
     var existing = state.items[id] || null;
 
     state.editing = { spec: spec, slot: slot, id: id, existing: existing };
@@ -2267,20 +2337,16 @@
     var amount = services.reduce(function (a, k) { return a + priceOf(k); }, 0);
     var mins = services.reduce(function (a, k) { return a + durOf(k); }, 0);
 
-    /* A long service eats the following hours; refuse rather than double-book. */
+    /* A long service runs into the following hours. The salon often does work
+       two customers at once, so this is said out loud rather than refused. */
     var idx = slotIndexOf(state.editing.slot);
     var span = spanFor(idx, mins);
     var clash = null;
     for (var q = 1; q < span; q++) {
       var nextSlot = SLOTS[idx + q];
       if (!nextSlot) break;
-      var other = state.items[bookingId(state.editing.spec, nextSlot.id)];
-      if (other) { clash = { slot: nextSlot, who: other.name }; break; }
-    }
-    if (clash) {
-      $("formErr").textContent = "این خدمات " + humanDur(mins) + " طول می‌کشد و ساعت " +
-        clash.slot.label + " همین متخصص برای " + clash.who + " رزرو است.";
-      return;
+      var others = bookingsAt(state.editing.spec, nextSlot.id);
+      if (others.length) { clash = { slot: nextSlot, who: others[0].bk.name }; break; }
     }
     var phone = $("f-phone").value.trim();
     var rec = {
@@ -2297,6 +2363,9 @@
     applyLocal(id, rec);
     adapter.saveBooking(id, rec, wasNew);
     rememberCustomer(name, phone, state.lang);
+    if (clash) {
+      toast("ثبت شد — با نوبت " + clash.who + " در ساعت " + clash.slot.label + " هم‌زمان می‌شود.");
+    }
   }
 
   function deleteBooking() {
@@ -2351,7 +2420,7 @@
       OUTBOX_KEY = "infinia_outbox_v1";
 
   var adapter = {
-    cloud: null, timer: null, busy: false, lastSync: "",
+    cloud: null, timer: null, busy: false, busySince: 0, lastSync: "",
     /* settings whose upload has not been confirmed yet: while a key is in
        here, a sync must not overwrite it with the server's older copy */
     pending: {},
@@ -2516,8 +2585,19 @@
     },
 
     pull: function (quiet) {
-      if (!adapter.cloud || adapter.busy) return Promise.resolve();
+      if (!adapter.cloud) return Promise.resolve();
+      /* A sync already under way must not be started twice — but a sync that
+         somehow never finished must not block the salon for ever either, and
+         pressing «همگام‌سازی حالا» has to do something rather than nothing. */
+      if (adapter.busy) {
+        if (Date.now() - (adapter.busySince || 0) > 30000) adapter.busy = false;
+        else {
+          if (!quiet) setTimeout(function () { adapter.pull(quiet); }, 1200);
+          return Promise.resolve();
+        }
+      }
       adapter.busy = true;
+      adapter.busySince = Date.now();
       return adapter.flush().then(function () {
         return Promise.all([
           adapter.api("settings?select=key,data"),
@@ -2842,7 +2922,8 @@
         if (!rec || rec.slot !== oldId || !rec.date || !rec.spec) return;
         if (dateKey && rec.date !== dateKey) return;
         rec.slot = newId;
-        var nid = rec.date + "_" + rec.spec + "_" + newId;
+        var tail = String(id).split("_").slice(3).join("_");
+        var nid = rec.date + "_" + rec.spec + "_" + newId + (tail ? "_" + tail : "");
         all[nid] = rec;
         delete all[id];
         moved.push([id, nid, rec]);
@@ -2974,17 +3055,23 @@
     board.addEventListener("change", function (e) {
       var t = e.target;
       if (!t || !t.dataset || !t.dataset.timeSpec) return;
-      setBookingTime(t.dataset.timeSpec, t.dataset.timeSlot, t.value);
+      setBookingTime(t.dataset.timeSpec, t.dataset.timeSlot, t.value, t.dataset.timeId);
     });
     board.addEventListener("click", function (e) {
+      var add = e.target.closest ? e.target.closest(".addmore") : null;
+      if (add) {
+        if (!state.canWrite) { toast("این دستگاه روی «فقط مشاهده» است."); return; }
+        openSheet(add.dataset.addSpec, add.dataset.addSlot, "new");
+        return;
+      }
       var b = e.target.closest ? e.target.closest(".slot, .tdash") : null;
       if (!b) return;
-      var taken = !!state.items[bookingId(b.dataset.spec, b.dataset.slot)];
+      var taken = !!b.dataset.id;
       if (!state.canWrite && !taken) {
         toast("این دستگاه روی «فقط مشاهده» است.");
         return;
       }
-      openSheet(b.dataset.spec, b.dataset.slot);
+      openSheet(b.dataset.spec, b.dataset.slot, b.dataset.id || null);
     });
     $("modeBtn").addEventListener("click", function () {
       if (state.viewOnly && state.passHash) { askPass(); return; }
