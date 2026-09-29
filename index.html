@@ -479,7 +479,7 @@
 <body>
 <header class="top">
   <div class="top-inner">
-    <div class="brand">اینفینیا<small>دفتر نوبت سالن زیبایی · نسخهٔ ۲۴</small></div>
+    <div class="brand">اینفینیا<small>دفتر نوبت سالن زیبایی · نسخهٔ ۲۵</small></div>
     <button type="button" class="modebtn" id="modeBtn">حالت ویرایش</button>
     <div class="pill" id="storagePill"><span class="dot" id="storageDot"></span><span id="storageText">در حال اتصال…</span></div>
   </div>
@@ -1265,6 +1265,12 @@
       SLOTS.forEach(function (sl, i) {
         if (i <= covered) return;
         var list = bookingsAt(sp.id, sl.id);
+        /* inside one hour, the earlier appointment is shown first */
+        list.sort(function (a, b) {
+          var ta = a.bk.time || hhmm(sl.id), tb = b.bk.time || hhmm(sl.id);
+          if (ta !== tb) return ta < tb ? -1 : 1;
+          return String(a.bk.name || "").localeCompare(String(b.bk.name || ""), "fa");
+        });
         var span = 1;
         list.forEach(function (e) {
           span = Math.max(span, spanFor(i, bookingMins(e.bk)));
@@ -2119,7 +2125,12 @@
 
     var rows = Object.keys(state.reminders)
       .map(function (k) { var r = state.reminders[k]; r.__id = k; return r; })
-      .sort(function (a, b) { return a.slot < b.slot ? -1 : (a.slot > b.slot ? 1 : 0); });
+      /* first appointment of the day to the last, by the hour written on it */
+      .sort(function (a, b) {
+        var ta = a.time || slotLatin(a.slot), tb = b.time || slotLatin(b.slot);
+        if (ta !== tb) return ta < tb ? -1 : 1;
+        return String(a.name || "").localeCompare(String(b.name || ""), "fa");
+      });
 
     var pending = rows.filter(function (r) { return !r.remindedAt; }).length;
     $("remindCount").textContent = rows.length
@@ -2164,7 +2175,12 @@
   function reminderRows() {
     return Object.keys(state.reminders)
       .map(function (k) { var r = state.reminders[k]; r.__id = k; return r; })
-      .sort(function (a, b) { return a.slot < b.slot ? -1 : (a.slot > b.slot ? 1 : 0); });
+      /* first appointment of the day to the last, by the hour written on it */
+      .sort(function (a, b) {
+        var ta = a.time || slotLatin(a.slot), tb = b.time || slotLatin(b.slot);
+        if (ta !== tb) return ta < tb ? -1 : 1;
+        return String(a.name || "").localeCompare(String(b.name || ""), "fa");
+      });
   }
 
   function pendingReminders() {
