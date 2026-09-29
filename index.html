@@ -260,6 +260,8 @@
   .tgroup h3{margin:0 0 4px;font-size:12px;font-weight:600;color:var(--berry);letter-spacing:.05em;display:flex;gap:8px;align-items:baseline}
   .tgroup h3 em{font-style:normal;font-size:10.5px;font-weight:400;color:var(--muted)}
   .trow{display:flex;gap:10px;align-items:center;padding:3px 0;border-bottom:1px dotted var(--line);font-size:13px}
+  .htag{font-size:10px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:0 7px;margin-inline-start:auto}
+  .htag.added{color:var(--gold);border-color:color-mix(in srgb, var(--gold) 40%, transparent)}
   .trow input.mins{width:58px}
   .trow .mins-read{margin-inline-start:0;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
   .hrow .hread{font-size:14px;font-variant-numeric:tabular-nums}
@@ -477,7 +479,7 @@
 <body>
 <header class="top">
   <div class="top-inner">
-    <div class="brand">اینفینیا<small>دفتر نوبت سالن زیبایی · نسخهٔ ۲۳</small></div>
+    <div class="brand">اینفینیا<small>دفتر نوبت سالن زیبایی · نسخهٔ ۲۴</small></div>
     <button type="button" class="modebtn" id="modeBtn">حالت ویرایش</button>
     <div class="pill" id="storagePill"><span class="dot" id="storageDot"></span><span id="storageText">در حال اتصال…</span></div>
   </div>
@@ -532,7 +534,7 @@
         <button type="button" id="saveDefaultHours">ثبت برای همهٔ روزها</button>
         <button type="button" id="resetHours" hidden>بازگشت به پیش‌فرض</button>
       </div>
-      <p class="tarhint">هر تغییری که اینجا بدهید <b>فقط برای همین روز</b> است؛ بقیهٔ روزها ساعات پیش‌فرض خودشان را نگه می‌دارند. اگر می‌خواهید تغییر برای همهٔ روزها اعمال شود، «ثبت برای همهٔ روزها» را بزنید. نوبت‌های ثبت‌شدهٔ همان ساعت با تغییر ساعت جابه‌جا می‌شوند، و حذف یک ساعت فقط ردیفش را از جدول برمی‌دارد — با افزودن دوباره برمی‌گردد.</p>
+      <p class="tarhint">ساعات نشان‌دار <b>«همیشگی»</b> روی همهٔ روزها هستند و پاک نمی‌شوند. با «افزودن ساعت» می‌توانید برای <b>همین روز</b> ساعت تازه‌ای بگذارید؛ آن ردیف قابل ویرایش و حذف است و بقیهٔ روزها را تغییر نمی‌دهد. اگر ساعتی را می‌خواهید از این به بعد روی همهٔ روزها داشته باشید، اول اضافه‌اش کنید و بعد «ثبت برای همهٔ روزها» را بزنید.</p>
     </div>
   </details>
 
@@ -1551,12 +1553,15 @@
     SLOTS.forEach(function (sl, i) {
       var row = document.createElement("div");
       row.className = "hrow";
-      row.innerHTML = state.canWrite
+      var fixed = isDefaultSlot(sl.id);
+      row.innerHTML = (state.canWrite && !fixed)
         ? '<span class="n">' + fa(i + 1) + "</span>" +
           '<input type="time" value="' + slotLatin(sl.id) + '" data-slot="' + sl.id +
           '" aria-label="ساعت ' + esc(sl.label) + '">' +
-          '<button type="button" class="del" data-delslot="' + sl.id + '">حذف</button>'
-        : '<span class="n">' + fa(i + 1) + '</span><b class="hread">' + esc(sl.label) + "</b>";
+          '<button type="button" class="del" data-delslot="' + sl.id + '">حذف</button>' +
+          '<span class="htag added">افزوده به این روز</span>'
+        : '<span class="n">' + fa(i + 1) + '</span><b class="hread">' + esc(sl.label) + "</b>" +
+          (fixed ? '<span class="htag">همیشگی</span>' : "");
       host.appendChild(row);
     });
     ["addHour", "saveDefaultHours"].forEach(function (id) {
@@ -1568,7 +1573,9 @@
   function currentSlotIds() { return SLOTS.map(function (s) { return s.id; }); }
   function dayIsCustom(k) {
     var o = state.dayHours[k || state.dateKey];
-    return !!(o && o.length);
+    if (!o || !o.length) return false;
+    for (var i = 0; i < o.length; i++) if (!isDefaultSlot(o[i])) return true;
+    return false;
   }
 
   /* One default list for every day, with a per-date exception when the salon
@@ -1577,8 +1584,15 @@
      in its list — the two had different working hours at that moment. Without
      this, the booking arrives but has no row to be drawn in and simply is not
      seen. Any hour that holds a booking is therefore added to the day's rows. */
+  function isDefaultSlot(id) { return state.defaultSlots.indexOf(id) !== -1; }
+
   function effectiveSlots() {
-    var list = (state.dayHours[state.dateKey] || state.defaultSlots).slice();
+    /* The salon's own hours are on every day, always. A day may hold extra
+       hours on top of them, but never fewer. */
+    var list = state.defaultSlots.slice();
+    (state.dayHours[state.dateKey] || []).forEach(function (id) {
+      if (list.indexOf(id) === -1) list.push(id);
+    });
     state.extraSlots = [];
     Object.keys(state.items).forEach(function (id) {
       var bk = state.items[id];
@@ -1665,6 +1679,11 @@
   }
 
   function editSlot(oldId, value) {
+    if (isDefaultSlot(oldId)) {
+      renderHours();
+      toast("ساعات همیشگی از اینجا عوض نمی‌شوند؛ ساعت تازه اضافه کنید.");
+      return;
+    }
     var newId = String(value || "").replace(/[^0-9]/g, "");
     if (!validSlotId(newId)) { renderHours(); toast("ساعت درست نیست."); return; }
     if (newId === oldId) return;
@@ -1692,6 +1711,10 @@
   }
 
   function removeHour(id) {
+    if (isDefaultSlot(id)) {
+      toast("این ساعت از ساعات همیشگی سالن است و روی همهٔ روزها می‌ماند.");
+      return;
+    }
     var ids = currentSlotIds().filter(function (x) { return x !== id; });
     if (!ids.length) { toast("دست‌کم یک ساعت کاری لازم است."); return; }
     applySlots(ids, "day");
