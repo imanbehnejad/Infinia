@@ -479,7 +479,7 @@
 <body>
 <header class="top">
   <div class="top-inner">
-    <div class="brand">اینفینیا<small>دفتر نوبت سالن زیبایی · نسخهٔ ۲۷</small></div>
+    <div class="brand">اینفینیا<small>دفتر نوبت سالن زیبایی · نسخهٔ ۲۸</small></div>
     <button type="button" class="modebtn" id="modeBtn">حالت ویرایش</button>
     <div class="pill" id="storagePill"><span class="dot" id="storageDot"></span><span id="storageText">در حال اتصال…</span></div>
   </div>
@@ -1081,6 +1081,25 @@
     var el = $("stTotal");
     if (el) el.textContent = fa(state.totalCount);
   }
+  /* The salon leaves this page open all day. Without this, «فردا» would still
+     mean yesterday's tomorrow after midnight and the reminder list would show
+     the wrong people. */
+  function rollDay() {
+    var now = new Date();
+    now.setHours(0, 0, 0, 0);
+    if (keyOf(now) === TODAY_KEY) return;
+    today = now;
+    TODAY_KEY = keyOf(now);
+    TOMORROW = keyOf(addDays(now, 1));
+    state.weekStart = addDays(now, -1);
+    renderDays();
+    renderHeader();
+    if (adapter && adapter.refreshReminders) adapter.refreshReminders();
+    if (adapter && adapter.refreshTotal) adapter.refreshTotal();
+    renderReminders();
+    toast("تاریخ عوض شد؛ یادآوری‌ها برای فردای تازه به‌روز شد.");
+  }
+
   var MODE_KEY = "infinia_mode_v1";
 
   /* The passcode is stored as a short hash so it is not sitting in the data in
@@ -2126,6 +2145,8 @@
 
     var rows = Object.keys(state.reminders)
       .map(function (k) { var r = state.reminders[k]; r.__id = k; return r; })
+      /* belt and braces: nothing but tomorrow ever reaches this list */
+      .filter(function (r) { return r && r.date === TOMORROW; })
       /* first appointment of the day to the last, by the hour written on it */
       .sort(function (a, b) {
         var ta = a.time || slotLatin(a.slot), tb = b.time || slotLatin(b.slot);
@@ -2176,6 +2197,7 @@
   function reminderRows() {
     return Object.keys(state.reminders)
       .map(function (k) { var r = state.reminders[k]; r.__id = k; return r; })
+      .filter(function (r) { return r && r.date === TOMORROW; })
       /* first appointment of the day to the last, by the hour written on it */
       .sort(function (a, b) {
         var ta = a.time || slotLatin(a.slot), tb = b.time || slotLatin(b.slot);
@@ -3348,6 +3370,8 @@
   }
   step(function () { adapter.setupSection(); }, "section");
   step(function () { adapter.init(); }, "init");
+  setInterval(rollDay, 60000);
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) rollDay(); });
 })();
 </script>
 
