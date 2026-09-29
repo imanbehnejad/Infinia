@@ -127,6 +127,7 @@
   .day.holiday[aria-pressed="true"] b,.day.holiday[aria-pressed="true"] span,
   .day.holiday[aria-pressed="true"] i,.day.holiday[aria-pressed="true"] .jal,
   .day.holiday[aria-pressed="true"] .holdot{color:#fff}
+  .extrahint{color:var(--gold)}
   .holbadge{
     margin:8px 0 0;font-size:13px;font-weight:600;padding:7px 16px;border-radius:999px;display:inline-block;
     background:var(--lac);color:#fff;border:1px solid var(--lac);
@@ -462,7 +463,7 @@
 <body>
 <header class="top">
   <div class="top-inner">
-    <div class="brand">اینفینیا<small>دفتر نوبت سالن زیبایی · نسخهٔ ۱۹</small></div>
+    <div class="brand">اینفینیا<small>دفتر نوبت سالن زیبایی · نسخهٔ ۲۰</small></div>
     <button type="button" class="modebtn" id="modeBtn">حالت ویرایش</button>
     <div class="pill" id="storagePill"><span class="dot" id="storageDot"></span><span id="storageText">در حال اتصال…</span></div>
   </div>
@@ -1030,6 +1031,7 @@
     lang: "fa",
     langTouched: false,
     defaultSlots: DEFAULT_SLOTS.slice(),
+    extraSlots: [],
     dayHours: {},
     dayHoursAt: {}
   };
@@ -1484,8 +1486,26 @@
 
   /* One default list for every day, with a per-date exception when the salon
      changes the hours on a particular day. */
+  /* A booking taken on the phone may sit at an hour this device does not have
+     in its list — the two had different working hours at that moment. Without
+     this, the booking arrives but has no row to be drawn in and simply is not
+     seen. Any hour that holds a booking is therefore added to the day's rows. */
+  function effectiveSlots() {
+    var list = (state.dayHours[state.dateKey] || state.defaultSlots).slice();
+    state.extraSlots = [];
+    Object.keys(state.items).forEach(function (id) {
+      var bk = state.items[id];
+      if (!bk || !bk.slot || !validSlotId(String(bk.slot))) return;
+      if (list.indexOf(bk.slot) === -1) {
+        list.push(bk.slot);
+        state.extraSlots.push(bk.slot);
+      }
+    });
+    return list;
+  }
+
   function applyEffectiveSlots() {
-    setSlots(state.dayHours[state.dateKey] || state.defaultSlots);
+    setSlots(effectiveSlots());
     renderHours();
     renderBoard();
   }
@@ -1495,9 +1515,14 @@
     if (!el) return;
     var d = dateFromKey(state.dateKey);
     var day = gFmt(d, { weekday: "long", day: "numeric", month: "long" });
-    el.innerHTML = dayIsCustom()
+    el.innerHTML = (dayIsCustom()
       ? "<b>" + esc(day) + "</b> ساعات جداگانهٔ خودش را دارد؛ بقیهٔ روزها پیش‌فرض‌اند."
-      : "<b>" + esc(day) + "</b> از ساعات پیش‌فرض استفاده می‌کند. هر تغییری بدهید فقط برای همین روز ثبت می‌شود.";
+      : "<b>" + esc(day) + "</b> از ساعات پیش‌فرض استفاده می‌کند. هر تغییری بدهید فقط برای همین روز ثبت می‌شود.") +
+      ((state.extraSlots && state.extraSlots.length)
+        ? ' <span class="extrahint">ساعت ' +
+          state.extraSlots.map(function (id) { return esc(slotLabel(id)); }).join(" و ") +
+          " به این روز افزوده شد چون نوبتی روی آن ثبت شده است.</span>"
+        : "");
     $("resetHours").hidden = !dayIsCustom() || !state.canWrite;
   }
 
@@ -2301,7 +2326,7 @@
     if (state.editing) syncServiceButtons(state.editing.spec);
   }
 
-  function onBookings(map) { state.items = map; renderBoard(); renderCustBook(); }
+  function onBookings(map) { state.items = map; applyEffectiveSlots(); renderCustBook(); }
 
   function goDate(k) {
     if (k === state.dateKey) return;
