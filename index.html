@@ -355,6 +355,7 @@
   .cempty{padding:12px 10px;font-size:12.5px;color:var(--muted)}
   .cmore{padding:8px 10px;font-size:11.5px;color:var(--muted);border-top:1px solid var(--line)}
 
+  .suggmore{margin:4px 6px 2px;font-size:11px;color:var(--muted)}
   .langrow{display:flex;gap:6px;align-items:center}
   .langbtn{
     font-family:inherit;font-size:12.5px;padding:5px 14px;border-radius:999px;cursor:pointer;
@@ -476,7 +477,7 @@
 <body>
 <header class="top">
   <div class="top-inner">
-    <div class="brand">اینفینیا<small>دفتر نوبت سالن زیبایی · نسخهٔ ۲۲</small></div>
+    <div class="brand">اینفینیا<small>دفتر نوبت سالن زیبایی · نسخهٔ ۲۳</small></div>
     <button type="button" class="modebtn" id="modeBtn">حالت ویرایش</button>
     <div class="pill" id="storagePill"><span class="dot" id="storageDot"></span><span id="storageText">در حال اتصال…</span></div>
   </div>
@@ -950,11 +951,27 @@
     return t.replace(/\s+/g, " ").trim();
   }
 
-  /* Does this customer answer to what was typed — by name or by number? */
+  /* Latin spellings of the same Turkish sound: Hayaşi and Hayashi, Çelik and
+     Chelik, Doğan and Dogan. Folded to one form so either spelling finds her. */
+  function foldSearch(t) {
+    return foldText(t).replace(/sh/g, "s").replace(/ch/g, "c").replace(/gh/g, "g");
+  }
+
+  /* Does this customer answer to what was typed — by name or by number?
+     Each word of what was typed is looked for on its own, so «احمدی مریم» finds
+     «مریم احمدی», and a name written without its space is found too. */
   function custMatches(c, q) {
-    var fq = foldText(q);
+    var fq = foldSearch(q).trim();
     if (!fq) return true;
-    if (foldText(c.name).indexOf(fq) !== -1) return true;
+    var name = foldSearch(c.name);
+    var tight = name.replace(/\s+/g, "");
+    var words = fq.split(/\s+/).filter(Boolean);
+    var hit = true;
+    for (var i = 0; i < words.length; i++) {
+      if (name.indexOf(words[i]) === -1 && tight.indexOf(words[i]) === -1) { hit = false; break; }
+    }
+    if (hit) return true;
+    if (tight.indexOf(fq.replace(/\s+/g, "")) !== -1) return true;
     var d = phoneDigits(q);
     if (d.length > 2) {
       if (phoneDigits(c.phone).indexOf(d) !== -1) return true;
@@ -1697,16 +1714,17 @@
     var host = $("suggest");
     q = String(q || "").trim().toLowerCase();
     if (q.length < 2) { hideSuggest(); return; }
-    var fq = foldText(q);
+    var fq = foldSearch(q);
     var hits = customerList().filter(function (c) { return custMatches(c, q); });
     /* the ones whose name actually begins with what was typed come first */
     hits.sort(function (a, b) {
-      var sa = foldText(a.name).indexOf(fq) === 0 ? 0 : 1;
-      var sb = foldText(b.name).indexOf(fq) === 0 ? 0 : 1;
+      var sa = foldSearch(a.name).indexOf(fq) === 0 ? 0 : 1;
+      var sb = foldSearch(b.name).indexOf(fq) === 0 ? 0 : 1;
       if (sa !== sb) return sa - sb;
       return String(a.name).localeCompare(String(b.name), "fa");
     });
-    hits = hits.slice(0, 12);
+    var total = hits.length;
+    hits = hits.slice(0, 30);
     if (!hits.length) { hideSuggest(); return; }
     host.textContent = "";
     hits.forEach(function (c) {
@@ -1720,6 +1738,12 @@
                     "<span>" + esc(c.phone ? faDigits(c.phone) : "بدون شماره") + "</span>";
       host.appendChild(b);
     });
+    if (total > hits.length) {
+      var more = document.createElement("p");
+      more.className = "suggmore";
+      more.textContent = fa(total - hits.length) + " نفر دیگر هم می‌خوانند — نام خانوادگی یا چند رقم از شماره را اضافه کنید.";
+      host.appendChild(more);
+    }
     host.hidden = false;
   }
 
