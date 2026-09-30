@@ -488,7 +488,7 @@
 <body>
 <header class="top">
   <div class="top-inner">
-    <div class="brand">اینفینیا<small>دفتر نوبت سالن زیبایی · نسخهٔ ۲۹</small></div>
+    <div class="brand">اینفینیا<small>دفتر نوبت سالن زیبایی · نسخهٔ ۳۰</small></div>
     <button type="button" class="modebtn" id="modeBtn">حالت ویرایش</button>
     <div class="pill" id="storagePill"><span class="dot" id="storageDot"></span><span id="storageText">در حال اتصال…</span></div>
   </div>
@@ -823,7 +823,7 @@
       { id: "sk_hydra",  name: "هیدرافیشیال",             price: 0, min: 60 },
       { id: "sk_micro",  name: "میکرودرم ابریژن",         price: 0, min: 45 },
       { id: "sk_peel",   name: "لایه‌برداری (پیلینگ)",    price: 0, min: 45 },
-      { id: "sk_meso",   name: "مزوتراپی",                price: 0, min: 45 },
+      { id: "sk_acid",   name: "اسید تراپی",              price: 0, min: 45 },
       { id: "sk_carbo",  name: "کربوکسی تراپی",           price: 0, min: 45 },
       { id: "sk_mask",   name: "ماسک صورت",               price: 0, min: 30 },
       { id: "sk_massage",name: "ماساژ صورت",              price: 0, min: 30 }
@@ -2611,10 +2611,20 @@
 
     enqueue: function (item) {
       adapter.dequeue(item.table, item.id);
+      item.k = item.k || (Date.now() + "-" + Math.random().toString(36).slice(2, 7));
       var q = adapter.outbox();
       q.push(item);
       adapter.writeJSON(OUTBOX_KEY, q);
-      adapter.status(false);
+      adapter.status();
+      return item;
+    },
+
+    /* Take one exact item out — not everything queued for that row, which
+       could throw away a newer change that is still on its way. */
+    dequeueKey: function (k) {
+      var q = adapter.outbox();
+      var left = q.filter(function (x) { return x.k !== k; });
+      if (left.length !== q.length) adapter.writeJSON(OUTBOX_KEY, left);
     },
 
     send: function (it) {
@@ -2623,15 +2633,19 @@
         : adapter.api(it.table, { method: "POST", prefer: "resolution=merge-duplicates", body: [it.row] });
     },
 
+    /* Queue first, send second. On a phone, tapping a WhatsApp link takes the
+       browser away from this page mid-request; the request dies with it and no
+       failure handler ever runs. Writing the change to the queue before the
+       request means it is already safe on this device and goes out on the next
+       sync — so «فرستاده شد» reaches the other devices either way. Queuing also
+       replaces anything older waiting for the same row. */
     push: function (table, keyCol, id, row, remove) {
       if (!adapter.cloud) return;
-      /* A newer action replaces whatever is queued for the same row: without
-         this, a failed "save" left in the queue would be replayed after a
-         delete and the booking would reappear on the next sync. */
-      adapter.dequeue(table, id);
-      var item = { table: table, keyCol: keyCol, id: id, row: row, remove: !!remove };
-      adapter.send(item).then(function () { adapter.status(true); },
-                              function () { adapter.enqueue(item); });
+      var item = adapter.enqueue({ table: table, keyCol: keyCol, id: id, row: row, remove: !!remove });
+      adapter.send(item).then(function () {
+        adapter.dequeueKey(item.k);
+        adapter.status(true);
+      }, function () { adapter.status(false); });
     },
 
     /* A phone book arrives all at once. One request per contact means hundreds
@@ -2972,26 +2986,20 @@
         return;
       }
       adapter.setting("deleted", marks);
-      adapter.dequeue("bookings", id);
-      adapter.send({ table: "bookings", keyCol: "id", id: id, remove: true }).then(function () {
-        adapter.status(true);
-        adapter.refreshTotal();
-        toast("نوبت لغو شد.");
-      }, function () {
-        adapter.enqueue({ table: "bookings", keyCol: "id", id: id, remove: true });
-        toast("لغو روی این دستگاه انجام شد؛ به‌محض وصل شدن روی سرور هم پاک می‌شود.");
-      });
+      adapter.push("bookings", "id", id, null, true);
+      adapter.refreshTotal();
+      toast(ok ? "نوبت لغو شد." : "لغو ذخیره نشد — حافظهٔ مرورگر در دسترس نیست.");
     },
 
     setting: function (key, value) {
       if (!adapter.cloud) return;
       adapter.pending[key] = true;
-      adapter.dequeue("settings", key);
-      var item = { table: "settings", keyCol: "key", id: key, row: { key: key, data: value }, remove: false };
+      var item = adapter.enqueue({ table: "settings", keyCol: "key", id: key, row: { key: key, data: value }, remove: false });
       adapter.send(item).then(function () {
+        adapter.dequeueKey(item.k);
         delete adapter.pending[key];
         adapter.status(true);
-      }, function () { adapter.enqueue(item); });
+      }, function () { adapter.status(false); });
     },
 
     savePrices: function () {
@@ -3349,8 +3357,10 @@
       if (t.dataset.wa) {
         /* The chat opens in WhatsApp; the row marks itself so the salon never
            has to remember who was already messaged. "لغو نشانه" undoes it. */
-        var id = t.dataset.wa;
-        setTimeout(function () { markReminded(id, true); }, 50);
+        /* Marked before the browser leaves for WhatsApp, not after: on a phone
+           this page is frozen the moment the chat opens, and a mark made later
+           would never be written or sent. */
+        markReminded(t.dataset.wa, true);
       } else if (t.dataset.copy) {
         var bk = state.reminders[t.dataset.copy];
         if (bk) copyText(reminderText(bk));
