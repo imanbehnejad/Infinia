@@ -488,7 +488,7 @@
 <body>
 <header class="top">
   <div class="top-inner">
-    <div class="brand">اینفینیا<small>دفتر نوبت سالن زیبایی · نسخهٔ ۳۱</small></div>
+    <div class="brand">اینفینیا<small>دفتر نوبت سالن زیبایی · نسخهٔ ۳۲</small></div>
     <button type="button" class="modebtn" id="modeBtn">حالت ویرایش</button>
     <div class="pill" id="storagePill"><span class="dot" id="storageDot"></span><span id="storageText">در حال اتصال…</span></div>
   </div>
@@ -2780,16 +2780,27 @@
           if (changed || adapter.stamp(mine) !== adapter.stamp(theirs)) adapter.setting("deleted", mine);
         }
 
-        var all = adapter.readAll();
+        var all = adapter.readAll(), keep = {};
         Object.keys(all).forEach(function (id) {
           var d = all[id] && all[id].date;
-          if (d === state.dateKey || d === TOMORROW) delete all[id];
+          if (d === state.dateKey || d === TOMORROW) { keep[id] = all[id]; delete all[id]; }
         });
+        var behindRows = [];
         (res[2] || []).forEach(function (r) {
           if (adapter.isDeleted(r.id, r.data && r.data.updatedAt)) { adapter.dropAgain(r.id); return; }
+          /* A change made here a moment ago must not be undone by a copy the
+             server had not caught up with yet — for example the «فرستاده شد»
+             mark set while the phone was jumping to WhatsApp. */
+          var mine = keep[r.id];
+          if (mine && String(mine.updatedAt || "") > String((r.data && r.data.updatedAt) || "")) {
+            all[r.id] = mine;
+            behindRows.push({ id: r.id, date: mine.date, data: mine });
+            return;
+          }
           all[r.id] = r.data;
         });
         adapter.writeAll(all);
+        if (behindRows.length) adapter.pushMany("bookings", "id", behindRows);
 
         adapter.watchDate(state.dateKey, true);
         adapter.refreshReminders();
@@ -2835,7 +2846,7 @@
     status: function (ok) {
       var pending = adapter.outbox().length;
       if (!adapter.cloud) {
-        setStorage(true, "ذخیره روی همین دستگاه");
+        setStorage(false, "فقط روی همین دستگاه — به سرور وصل نیست");
       } else if (ok === false) {
         setStorage(false, "همگام‌سازی قطع است" + (pending ? " — " + fa(pending) + " در صف" : ""));
       } else {
@@ -2954,14 +2965,17 @@
       onBookings(next);
       if (adapter.cloud && !skipFetch) {
         adapter.api("bookings?select=id,data&date=eq." + k).then(function (rows) {
-          var cache = adapter.readAll(), fresh = {};
+          var cache = adapter.readAll(), fresh = {}, mineByDay = {};
           Object.keys(cache).forEach(function (id) {
-            if (cache[id] && cache[id].date === k) delete cache[id];
+            if (cache[id] && cache[id].date === k) { mineByDay[id] = cache[id]; delete cache[id]; }
           });
           (rows || []).forEach(function (r) {
             if (adapter.isDeleted(r.id, r.data && r.data.updatedAt)) { adapter.dropAgain(r.id); return; }
-            cache[r.id] = r.data;
-            fresh[r.id] = r.data;
+            var mine = mineByDay[r.id];
+            var row = (mine && String(mine.updatedAt || "") > String((r.data && r.data.updatedAt) || ""))
+              ? mine : r.data;
+            cache[r.id] = row;
+            fresh[r.id] = row;
           });
           adapter.writeAll(cache);
           if (state.dateKey === k) onBookings(fresh);
